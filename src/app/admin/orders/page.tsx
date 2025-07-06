@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -59,37 +60,41 @@ export default function AdminOrdersPage() {
         if (err.code === 'failed-precondition') {
           const detailedError = (
             <div className="space-y-4">
-               <p>I understand creating the index has been a challenge, and I apologize for the difficulty. The Firebase console link is truly the most reliable way to solve this. Let's try one more time with a refined process to clear out any old attempts.</p>
+               <p>My apologies, my previous instructions were incorrect. The error message you saw in the Firebase console was a key clue. We need to create a **Single-field index exemption**, not a composite one.</p>
 
                 <div>
-                    <h4 className="font-semibold text-md mb-2">Step 1: Delete Any Previous 'orders' Indexes</h4>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                        <li>Go to your <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Firebase Console</a> → Firestore → Indexes.</li>
-                        <li>Look for any existing indexes on the `orders` collection. If you see any, please **delete them**. This ensures we're starting fresh.</li>
+                    <h4 className="font-semibold text-md mb-2">Step 1: Go to Firestore Indexes</h4>
+                     <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                        <li>Open your <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Firebase Console</a> and go to the **Firestore Database** section.</li>
+                        <li>Click the **Indexes** tab at the top.</li>
                     </ul>
                 </div>
-              
+
                 <div>
-                  <h4 className="font-semibold text-md mb-2">Step 2: Find the Automatic Index Creation Link</h4>
+                  <h4 className="font-semibold text-md mb-2">Step 2: Create a Single-Field Exemption</h4>
                   <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                      <li>Return to this admin page in your browser and refresh.</li>
-                      <li>Open your browser's **Developer Console** (usually by pressing F12, or Right-Click → Inspect → Console tab).</li>
-                      <li>You will see a Firebase error message in the console. It will contain a long `https://...` link. It looks like this:</li>
-                      <li className="list-none my-2">
-                        <code className="block p-2 rounded-md bg-destructive/10 text-destructive text-xs">FirebaseError: The query requires an index. You can create it here: https://...</code>
-                      </li>
-                      <li>**Click that link.**</li>
+                      <li>Click on the **Single Field** tab (this is the important part).</li>
+                      <li>Under the "Single-field index exemptions" section, click **Add exemption**.</li>
                   </ul>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-md mb-2">Step 3: Create the Index</h4>
-                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                      <li>The link will open the Firebase Console with all the fields pre-filled correctly.</li>
-                      <li>Just click the **Create** button. The index will take a few minutes to build.</li>
+                  <h4 className="font-semibold text-md mb-2">Step 3: Configure the Exemption</h4>
+                  <p className="text-sm text-muted-foreground mb-2">A panel will open. Enter the following settings exactly:</p>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-2">
+                      <li>**Collection Path:** `orders`</li>
+                      <li>**Field Path:** `orderedAt`</li>
+                      <li>**Query scope:** Select **Collection group**.</li>
+                      <li>**Query options:** Check both **Ascending** and **Descending**.</li>
                   </ul>
                 </div>
-                 <p className="text-xs pt-2 text-muted-foreground">This process ensures you get the exact index your project needs without any guesswork. Once the index is built, this page will load correctly.</p>
+                 <div className="mt-4">
+                    <h4 className="font-semibold text-md mb-2">Step 4: Save and Wait</h4>
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                        <li>Click **Save**. The index exemption will take a few minutes to build.</li>
+                        <li>Once it's finished, this page will load correctly.</li>
+                    </ul>
+                </div>
             </div>
           );
           setError(detailedError);
@@ -179,8 +184,9 @@ export default function AdminOrdersPage() {
           ) : (
             <p className="text-muted-foreground text-center py-8">No orders have been placed yet.</p>
           )}
-        </CardContent>
+        </Content>
       </Card>
     </main>
   );
 }
+
