@@ -184,9 +184,8 @@ export default function AdminOrdersPage() {
           ) : (
             <p className="text-muted-foreground text-center py-8">No orders have been placed yet.</p>
           )}
-        </Content>
+        </CardContent>
       </Card>
     </main>
   );
 }
-
