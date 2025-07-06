@@ -6,14 +6,12 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { ImagePlus, ZoomIn, ZoomOut, RefreshCw, Replace, Square, Circle, Heart, Download, FileText, Package, Star, Lightbulb, Crown } from 'lucide-react';
+import { ImagePlus, ZoomIn, ZoomOut, RefreshCw, Replace, Square, Circle, Heart, Download, FileText, Package, Star, Lightbulb, Crown, ShoppingCart } from 'lucide-react';
 import { Spinner } from '@/components/spinner';
 import jsPDF from 'jspdf';
-import type { OnApproveData, OnApproveActions, OrderResponseBody } from "@paypal/paypal-js";
 import { useAuth } from '@/hooks/useAuth';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 const MIN_SCALE = 0.1;
@@ -135,6 +133,7 @@ export default function ImageEditor() {
   const [showPrintLayout, setShowPrintLayout] = useState(false);
   const [printScale, setPrintScale] = useState(0.2);
   const [isClient, setIsClient] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setIsClient(true);
@@ -755,50 +754,75 @@ export default function ImageEditor() {
                                       </Button>
                                   </div>
                               </Card>
-                              {/* 1200DPI PNG */}
-                              <Card className="p-4 border-yellow-200 border bg-yellow-50/50 relative space-y-3">
-                                  <div className="flex items-start justify-between">
-                                      <div className="flex items-center gap-3">
-                                         <FileText className="text-yellow-500 w-5 h-5" />
-                                          <div>
-                                              <h4 className="font-semibold">1200DPI PNG</h4>
-                                              <p className="text-sm text-muted-foreground mt-1">Ultra-high resolution</p>
+                              
+                              {/* PAID DOWNLOADS - WEB ONLY */}
+                              {isClient && !isMobile && (
+                                <>
+                                  {/* 1200DPI PNG */}
+                                  <Card className="p-4 border-yellow-200 border bg-yellow-50/50 relative space-y-3">
+                                      <div className="flex items-start justify-between">
+                                          <div className="flex items-center gap-3">
+                                            <FileText className="text-yellow-500 w-5 h-5" />
+                                              <div>
+                                                  <h4 className="font-semibold">1200DPI PNG</h4>
+                                                  <p className="text-sm text-muted-foreground mt-1">Ultra-high resolution</p>
+                                              </div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
+                                            <Button variant="ghost" size="icon" disabled>
+                                                <Download className="text-yellow-500"/>
+                                            </Button>
+                                          </div>
+                                          <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
+                                              <Crown className="w-4 h-4" />
                                           </div>
                                       </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
-                                        <Button variant="ghost" size="icon" disabled>
-                                            <Download className="text-yellow-500"/>
-                                        </Button>
-                                      </div>
-                                      <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
-                                          <Crown className="w-4 h-4" />
-                                      </div>
-                                  </div>
-                                  <PayPalPurchaseButtons type="png" />
-                              </Card>
-                              {/* 1200DPI PDF */}
-                              <Card className="p-4 border-yellow-200 border bg-yellow-50/50 relative space-y-3">
-                                  <div className="flex items-start justify-between">
-                                      <div className="flex items-center gap-3">
-                                          <FileText className="text-yellow-500 w-5 h-5" />
-                                          <div>
-                                              <h4 className="font-semibold">1200DPI PDF</h4>
-                                              <p className="text-sm text-muted-foreground mt-1">Professional print quality</p>
+                                      <PayPalPurchaseButtons type="png" />
+                                  </Card>
+                                  {/* 1200DPI PDF */}
+                                  <Card className="p-4 border-yellow-200 border bg-yellow-50/50 relative space-y-3">
+                                      <div className="flex items-start justify-between">
+                                          <div className="flex items-center gap-3">
+                                              <FileText className="text-yellow-500 w-5 h-5" />
+                                              <div>
+                                                  <h4 className="font-semibold">1200DPI PDF</h4>
+                                                  <p className="text-sm text-muted-foreground mt-1">Professional print quality</p>
+                                              </div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
+                                            <Button variant="ghost" size="icon" disabled>
+                                                <Download className="text-yellow-500"/>
+                                            </Button>
+                                          </div>
+                                          <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
+                                              <Crown className="w-4 h-4" />
                                           </div>
                                       </div>
-                                       <div className="flex items-center gap-2">
-                                        <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
-                                        <Button variant="ghost" size="icon" disabled>
-                                            <Download className="text-yellow-500"/>
-                                        </Button>
-                                      </div>
-                                      <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
-                                          <Crown className="w-4 h-4" />
-                                      </div>
-                                  </div>
-                                  <PayPalPurchaseButtons type="pdf" />
-                              </Card>
+                                      <PayPalPurchaseButtons type="pdf" />
+                                  </Card>
+                                </>
+                              )}
+
+                              {/* PAID DOWNLOADS - MOBILE ONLY PLACEHOLDER */}
+                              {isClient && isMobile && (
+                                <Card className="sm:col-span-2 p-4 border-yellow-200 border bg-yellow-50/50 relative">
+                                    <div className="flex items-center gap-3">
+                                        <FileText className="text-yellow-500 w-5 h-5 mt-1 flex-shrink-0" />
+                                        <div>
+                                            <h4 className="font-semibold">Ultra-High Resolution Downloads</h4>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                To comply with store policies, 1200DPI downloads are available exclusively on our website.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
+                                        <Crown className="w-4 h-4" />
+                                    </div>
+                                </Card>
+                              )}
+
                           </div>
                       </div>
 
@@ -822,6 +846,22 @@ export default function ImageEditor() {
                                       <Package className="mr-2"/> Order Physical Prints
                                   </Button>
                               </div>
+                          </Card>
+                      </div>
+
+                      {/* Amazon Link Section */}
+                      <div className="pt-4">
+                          <SectionHeader icon={<ShoppingCart className="text-amber-600" />} title="Recommended Supplies" />
+                           <Card className="p-6 mt-4 border-amber-200 border bg-amber-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
+                              <div>
+                                  <h4 className="font-semibold text-lg">Locket Photo Paper</h4>
+                                  <p className="text-muted-foreground mt-1">Get the official high-gloss photo paper for perfect, vibrant locket-sized prints every time.</p>
+                              </div>
+                              <a href="https://www.amazon.com/gp/product/B0FBM249W3" target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
+                                  <Button className="mt-2 md:mt-0 bg-amber-500 hover:bg-amber-600 text-white" size="lg">
+                                      <ShoppingCart className="mr-2"/> Buy on Amazon
+                                  </Button>
+                              </a>
                           </Card>
                       </div>
 
