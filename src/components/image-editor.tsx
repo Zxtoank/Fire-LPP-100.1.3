@@ -28,9 +28,6 @@ const PRINT_HEIGHT_IN = 6;
 const PRINT_WIDTH_PX = PRINT_WIDTH_IN * PRINT_DPI_PREVIEW;
 const PRINT_HEIGHT_PX = PRINT_HEIGHT_IN * PRINT_DPI_PREVIEW;
 
-// High-quality SVG for the Amazon logo, encoded as a data URI
-const amazonLogoDataUri = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDYuMyAzMi4yIiB4bWw6c3BhY2U9InByZXNlcnZlIj48cGF0aCBmaWxsPSIjMjMyRjNFIiBkPSJNMjMuOSAxOS4zYy0yLjQuMi00LjguMy03LjIuMy01LjUgMC05LTEuMS0xMC43LTMuNi0uOS0xLjQtMS4xLTMuMi0xLjEtNS40IDAtNC41IDIuNC03LjMgNi45LTcuMyAyLjcgMCA1LjIuOCA2LjkgMi4zbC0yLjEgMmMtMS4zLTEtMi43LTEuNS00LjMtMS41LTIuMyAwLTMuOCAxLjQtMy44IDMuNyAwIDIuNSAxLjMgMy42IDMuOCAzLjYuOCAwIDItLjEgMy4yLS4zbC4xLTUuNWgtM1Y3LjZoNi4xdjExLjd6TTM3LjcgMTkuM2MtMS42LjItMy4zLjMtNS4xLjMtNi4xIDAtMTAuMS0yLjYtMTAuMS03LjRTMjYuNyA0LjkgMzIuNyA0LjljNi4xIDAgMTAuMSAyLjYgMTAuMSA3LjQgMCAzLjYtMiA2LjItNiA3LjFsNiA3LjFoLTMuOEwzMy42IDIwaC0xLjF2Ni40aC0yLjhWNS41YzEuNi0uMiAzLjMtLjMgNS4xLS4zIDMuNiAwIDYuOSAxLjcgNi45IDQuOSAwIDIuOS0yLjEgNC4yLTQuOSA0LjV2LjFjMi4xLjMgMy44IDEuOCAzLjggNC40LjEgMi0xLjEgMy41LTMuNiA0LjR6TTMyLjcgMTQuNmMyLjIgMCAzLjctMSAzLjctMi45IDAtMS44LTEuNS0yLjktMy43LTIuOS0xLjIgMC0yLjUuMi0zLjcuNHY1YzEuNC4xIDIuNy4yIDMuNy4yek01Mi45IDEzLjhjMC00LTIuNi02LTcuMS02LTQuNyAwLTguNCAyLjMtOC40IDZzMy44IDYgOC40IDZjNC42LS4xIDcuMS0yLjEgNy4xLTZ6bS00LjIgMGMwIDIuMy0xLjYgMy42LTQuMiAzLjZzLTQuMS0xLjMtNC4xLTMuNiAxLjUtMy42IDQuMS0zLjZjMi42IDAgNC4yIDEuMyA0LjIgMy42ek02Ni4xIDE5LjRjLTEgMS4xLTIuMyAxLjYtMy43IDEuNi0yIDAtMy4yLS45LTMuMi0zVjkuM2gtMi44djcuOWMwIDMuNiAxLjkgNS4zIDUgNS4zIDIgMCAzLjgtLjcgNC45LTIuM2wuMS0yLjRoLTIuOWwuNi4xek03NS44IDE5LjlsMy43LTEwLjVoMi45bDMuNyAxMC41aC0yLjlsLS44LTIuNGgtMy4xbC0uOCAyLjRoLTIuN3ptMy4xLTQuNmgxLjlsLTEtMy0xIDN6TTk4IDE5LjNjLTIuNC4yLTQuOC4zLTcuMi4zLTUuNSAwLTktMS4xLTEwLjctMy42LS45LTEuNC0xLjEtMy4yLTEuMS01LjQgMC00LjUgMi40LTcuMyA2LjktNy4zIDIuNyAwIDUuMi44IDYuOSAyLjNsLTIuMSAybC0xLjMtMS0yLjctMS41LTQuMy0xLjVjLTIuMyAwLTMuOCAxLjQtMy44IDMuNyAwIDIuNSAxLjMgMy42IDMuOCAzLjYuOCAwIDItLjEgMy4yLS4zbC4xLTUuNWgtM1Y3LjZoNi4xdjExLjd6Ii8+PHBhdGggZmlsbD0iI0ZGOTkwMCIgZD0iTTcxLjYgMjEuOGM4LjMtMi4zIDEzLjMtOCAxNC44LTEwLjQuMS0uMi4yLS40LjEtLjctLjEtLjMtLjQtLjQtLjctLjQtLjEgMC0uMiAwLS4yIDAtLjEgMC0uMSAwLS4yLjEtMS40IDAtMTMuMSA2LjktMjUuMSA3LjUtNC0uMS05LjQtMS40LTEyLjktNC4zLS4yLS4yLS41LS4xLS43LjFzLS4xLjUuMS43YzAgMCAwIDAgMCAwIDMuMSAzLjIgOCA0LjYgMTIuMyA0LjggMSAwIDIuMiAwIDMuMi0uMS4xIDAgLjEgMCAuMiAwIDMuMy0uMyA2LjgtMSA5LjktMi4yLjIuNS40IDEgLjYgMS41LTMuMiAxLjMtNi44IDItMTAuNiAyLjItLjEgMC0uMSAwLS4yIDAtMS4xLjEtMi4zLjEtMy41LjEtNC40LS4xLTkuOC0xLjQtMTMuMi00LjgtLjItLjItLjUtLjItLjcgMC0uMi4yLS4yLjUuMS43IDMuNiAzLjUgOSA1IDguMSA1LjFoLjJjMTAuMS00LjQgMTkuOS01LjggMjAtOS4zek0iLz48L3N2Zz4=";
-
 
 const drawHeart = (ctx: CanvasRenderingContext2D, cx: number, y: number, width: number, height: number) => {
     ctx.save();
@@ -533,22 +530,28 @@ export default function ImageEditor() {
         const androidBridge = (window as any).AndroidBridge;
 
         if (androidBridge && typeof androidBridge.saveFile === 'function') {
+            const toBase64 = (canvas: HTMLCanvasElement, mimeType: string, quality?: number): Promise<string> => {
+                return new Promise((resolve) => {
+                    const dataUrl = canvas.toDataURL(mimeType, quality);
+                    resolve(dataUrl.split(',')[1]);
+                });
+            };
+
             let base64Data: string;
             let mimeType: string;
 
-            const toBase64 = async (): Promise<[string, string]> => {
-                if (format === 'pdf') {
-                    const { default: jsPDF } = await import('jspdf');
-                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
-                    const imgData = canvas.toDataURL('image/png');
-                    pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
-                    return [pdf.output('datauristring').split(',')[1], 'application/pdf'];
-                } else {
-                    return [canvas.toDataURL('image/png').split(',')[1], 'image/png'];
-                }
-            };
-
-            [base64Data, mimeType] = await toBase64();
+            if (format === 'pdf') {
+                const { default: jsPDF } = await import('jspdf');
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
+                base64Data = pdf.output('datauristring').split(',')[1];
+                mimeType = 'application/pdf';
+            } else {
+                base64Data = await toBase64(canvas, 'image/png');
+                mimeType = 'image/png';
+            }
+            
             androidBridge.saveFile(base64Data, fileName, mimeType);
             
         } else {
@@ -980,12 +983,6 @@ export default function ImageEditor() {
                                       </Button>
                                   </a>
                               </div>
-                              <div className="mt-4 pt-4 border-t border-amber-300/50 flex justify-end">
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                      <span>Sold on</span>
-                                      <NextImage src={amazonLogoDataUri} alt="Amazon logo" width={75} height={23} className="h-6 w-auto" />
-                                  </div>
-                              </div>
                           </Card>
                       </div>
 
@@ -1031,3 +1028,5 @@ export default function ImageEditor() {
     </Card>
   );
 }
+
+    
