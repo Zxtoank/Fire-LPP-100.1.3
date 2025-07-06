@@ -32,8 +32,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#8e4cf1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#9C27B0" />
       </head>
       <body className={`${belleza.variable} ${alegreya.variable} font-serif antialiased`}>
         <AuthProvider>
