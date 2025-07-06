@@ -526,26 +526,32 @@ export default function ImageEditor() {
 
     try {
         const canvas = await generateDownloadableCanvas(dpi);
-        let dataUrl: string;
+        let fileBlob: Blob | null = null;
         let fileExtension: string;
 
         if (format === 'pdf') {
             const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
             const imgData = canvas.toDataURL('image/png');
             pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
-            dataUrl = pdf.output('datauristring');
+            fileBlob = pdf.output('blob');
             fileExtension = 'pdf';
         } else {
-            dataUrl = canvas.toDataURL('image/png');
+            fileBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
             fileExtension = 'png';
         }
         
+        if (!fileBlob) {
+            throw new Error('Failed to generate file for download.');
+        }
+
+        const url = URL.createObjectURL(fileBlob);
         const a = document.createElement('a');
-        a.href = dataUrl;
+        a.href = url;
         a.download = `locket-photo-print-${dpi}dpi.${fileExtension}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
         toast({ title: "Success", description: "Download started." });
 
