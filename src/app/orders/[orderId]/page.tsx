@@ -8,7 +8,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { Header } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Spinner } from '@/components/spinner';
-import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { Package, Home, CheckCircle, Truck, Circle } from 'lucide-react';
 
@@ -83,7 +82,7 @@ export default function OrderDetailsPage() {
   
   if (error) {
      return (
-       <div className="flex flex-col min-h-screen bg-gray-50">
+       <div className="flex flex-col min-h-screen bg-background">
         <Header />
         <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
             <p className="text-red-500">{error}</p>
@@ -94,10 +93,10 @@ export default function OrderDetailsPage() {
 
   if (!order) {
     return (
-       <div className="flex flex-col min-h-screen bg-gray-50">
+       <div className="flex flex-col min-h-screen bg-background">
         <Header />
         <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
-            <p className="text-gray-500">Order not found.</p>
+            <p className="text-muted-foreground">Order not found.</p>
         </main>
        </div>
     )
@@ -106,12 +105,9 @@ export default function OrderDetailsPage() {
   const currentStatusIndex = statusSteps.findIndex(step => step.id === order.status);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
-        <Button variant="link" onClick={() => router.push('/profile')} className="mb-4 pl-0">
-            &larr; Back to Profile
-        </Button>
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Order Details</CardTitle>
@@ -123,17 +119,17 @@ export default function OrderDetailsPage() {
             <div>
               <h3 className="font-semibold mb-6 text-lg">Order Status</h3>
               <div className="relative flex items-center justify-between w-full max-w-2xl mx-auto">
-                 <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 w-full bg-gray-200"></div>
+                 <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 w-full bg-border"></div>
                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary" style={{width: `${(currentStatusIndex / (statusSteps.length - 1)) * 100}%`}}></div>
                 {statusSteps.map((step, index) => {
                   const isActive = index <= currentStatusIndex;
                   const Icon = step.icon;
                   return (
                     <div key={step.id} className="z-10 flex flex-col items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${isActive ? 'bg-primary border-primary text-white' : 'bg-white border-gray-300 text-gray-500'}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${isActive ? 'bg-primary border-primary text-white' : 'bg-background border-border text-muted-foreground'}`}>
                         <Icon className="w-5 h-5" />
                       </div>
-                      <p className={`mt-2 text-sm font-medium text-center ${isActive ? 'text-primary' : 'text-gray-500'}`}>{step.label}</p>
+                      <p className={`mt-2 text-sm font-medium text-center ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>{step.label}</p>
                     </div>
                   );
                 })}
@@ -143,7 +139,7 @@ export default function OrderDetailsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
                 <div className="space-y-4">
                     <h3 className="font-semibold text-lg flex items-center gap-2"><Package />Items Summary</h3>
-                    <div className="p-4 border rounded-md bg-gray-50">
+                    <div className="p-4 border rounded-md bg-muted/50">
                         {order.items.map((item, index) => (
                             <div key={index} className="flex justify-between">
                                 <p>{item.description}</p>
@@ -159,7 +155,7 @@ export default function OrderDetailsPage() {
 
                 <div className="space-y-4">
                      <h3 className="font-semibold text-lg flex items-center gap-2"><Home />Shipping Address</h3>
-                     <div className="p-4 border rounded-md bg-gray-50 leading-relaxed">
+                     <div className="p-4 border rounded-md bg-muted/50 leading-relaxed">
                         <p className="font-medium">{order.shippingAddress.name}</p>
                         <p>{order.shippingAddress.address_line_1}</p>
                         {order.shippingAddress.address_line_2 && <p>{order.shippingAddress.address_line_2}</p>}

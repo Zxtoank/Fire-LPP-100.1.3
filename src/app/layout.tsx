@@ -18,7 +18,6 @@ const alegreya = Alegreya({
 export const metadata: Metadata = {
   title: 'Locket Photo Print',
   description: 'Upload and prepare your photos for printing.',
-  manifest: '/manifest.json',
   icons: {
     icon: '/icons/icon-192x192.png',
     apple: '/icons/icon-192x192.png',
@@ -33,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#A366F7" />
       </head>
       <body className={`${belleza.variable} ${alegreya.variable} font-serif antialiased`}>

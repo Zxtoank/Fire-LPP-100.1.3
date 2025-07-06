@@ -201,7 +201,7 @@ export default function CheckoutPage() {
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
-        <h1 className="text-4xl font-bold text-primary text-center mb-8">Checkout</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold text-primary text-center mb-8">Checkout</h1>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div>
                 <Card className="shadow-lg">
@@ -209,7 +209,7 @@ export default function CheckoutPage() {
                         <CardTitle>Order Summary</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="border rounded-md p-2 bg-gray-100">
+                        <div className="border rounded-md p-2 bg-muted">
                             {printPreviewUrl && <Image src={printPreviewUrl} alt="Print Preview" width={400} height={600} className="w-full h-auto rounded-md" />}
                         </div>
                          <div className="flex justify-between items-center text-lg">
@@ -232,9 +232,9 @@ export default function CheckoutPage() {
                                 <CardDescription>Please confirm your details and complete your purchase.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="mb-6 p-4 border rounded-md bg-gray-50">
+                                <div className="mb-6 p-4 border rounded-md bg-muted/50">
                                     <h4 className="font-semibold mb-2">Shipping To:</h4>
-                                    <div className="text-sm text-gray-700 leading-relaxed">
+                                    <div className="text-sm text-muted-foreground leading-relaxed">
                                         <p className="font-medium">{shippingAddress.name}</p>
                                         <p>{shippingAddress.address1}</p>
                                         {shippingAddress.address2 && <p>{shippingAddress.address2}</p>}
@@ -293,7 +293,7 @@ export default function CheckoutPage() {
                                             name="address2"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Address Line 2 <span className="text-gray-500">(Optional)</span></FormLabel>
+                                                    <FormLabel>Address Line 2 <span className="text-muted-foreground">(Optional)</span></FormLabel>
                                                     <FormControl><Input placeholder="Apt, suite, etc." {...field} /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>

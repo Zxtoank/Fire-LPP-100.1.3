@@ -77,8 +77,8 @@ export default function ProfilePage() {
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
         <div className="space-y-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-800">My Profile</h1>
-            <p className="text-lg text-gray-600 mt-2">{user.displayName || user.email}</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground">My Profile</h1>
+            <p className="text-lg text-muted-foreground mt-2">{user.displayName || user.email}</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -91,10 +91,10 @@ export default function ProfilePage() {
                 {isDataLoading ? <div className="flex justify-center p-8"><Spinner /></div> : downloads.length > 0 ? (
                   <ul className="space-y-4">
                     {downloads.map(d => (
-                      <li key={d.id} className="flex justify-between items-center p-3 bg-gray-100 rounded-lg border">
+                      <li key={d.id} className="flex justify-between items-center p-3 bg-muted rounded-lg border">
                         <div>
                           <p className="font-semibold">1200DPI {d.type.toUpperCase()}</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                             Purchased on {d.downloadedAt ? format(d.downloadedAt.toDate(), "PPP") : 'N/A'}
                           </p>
                         </div>
@@ -102,7 +102,7 @@ export default function ProfilePage() {
                       </li>
                     ))}
                   </ul>
-                ) : <p className="text-gray-500 text-center py-4">You haven&apos;t purchased any downloads yet.</p>}
+                ) : <p className="text-muted-foreground text-center py-4">You haven&apos;t purchased any downloads yet.</p>}
               </CardContent>
             </Card>
 
@@ -115,10 +115,10 @@ export default function ProfilePage() {
                  {isDataLoading ? <div className="flex justify-center p-8"><Spinner /></div> : orders.length > 0 ? (
                   <ul className="space-y-4">
                     {orders.map(o => (
-                      <li key={o.id} className="flex justify-between items-center p-3 bg-gray-100 rounded-lg border">
+                      <li key={o.id} className="flex justify-between items-center p-3 bg-muted rounded-lg border">
                         <div>
                           <p className="font-semibold">Order #{o.id.substring(0, 6).toUpperCase()}</p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-muted-foreground">
                              Placed on {o.orderedAt ? format(o.orderedAt.toDate(), "PPP") : 'N/A'} - <span className="font-medium capitalize">{o.status}</span>
                           </p>
                         </div>
@@ -128,7 +128,7 @@ export default function ProfilePage() {
                       </li>
                     ))}
                   </ul>
-                ) : <p className="text-gray-500 text-center py-4">You haven&apos;t placed any orders yet.</p>}
+                ) : <p className="text-muted-foreground text-center py-4">You haven&apos;t placed any orders yet.</p>}
               </CardContent>
             </Card>
           </div>

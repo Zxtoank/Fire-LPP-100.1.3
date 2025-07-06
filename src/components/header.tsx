@@ -6,12 +6,13 @@ import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { User, LogOut } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { User, LogOut, ChevronLeft } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 
 export function Header() {
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleSignOut = async () => {
     try {
@@ -24,11 +25,20 @@ export function Header() {
 
   return (
     <header className="p-2 sm:p-4 border-b shrink-0 flex justify-between items-center bg-card">
-      <Link href="/" className="min-w-0">
-        <h1 className="text-xl sm:text-2xl font-bold text-primary cursor-pointer truncate">
-          Locket Photo Print
-        </h1>
-      </Link>
+      <div className="flex items-center gap-1 sm:gap-2">
+        {pathname !== '/' && (
+          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => router.back()}>
+            <ChevronLeft className="h-6 w-6" />
+            <span className="sr-only">Back</span>
+          </Button>
+        )}
+        <Link href="/" className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary cursor-pointer truncate">
+            Locket Photo Print
+          </h1>
+        </Link>
+      </div>
+
       <div className="flex items-center gap-2 flex-shrink-0">
         {user ? (
           <DropdownMenu>
