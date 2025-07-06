@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%; /* Very light cool gray */
-    --foreground: 215 28% 17%; /* Dark blue-gray */
+    --background: 260 80% 97%; /* Light Purple */
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 215 28% 17%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 28% 17%;
+    --popover-foreground: 222 47% 11%;
     --primary: 260 83% 63%; /* Purple */
-    --primary-foreground: 0 0% 100%; /* White text for contrast on purple */
-    --secondary: 210 40% 96%; /* Lighter cool gray */
-    --secondary-foreground: 215 28% 17%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 20% 45%;
-    --accent: 260 83% 63%; /* A vibrant purple for accents */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 260 80% 94%; /* Light Purple */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 260 80% 94%; /* Light Purple */
+    --muted-foreground: 224 40% 50%;
+    --accent: 260 83% 63%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 260 83% 63%; /* Purple */
+    --border: 224 32% 91%;
+    --input: 224 32% 91%;
+    --ring: 260 83% 63%;
     --radius: 0.8rem;
   }
  
@@ -55,6 +55,10 @@
   }
   body {
     @apply bg-background text-foreground font-alegreya;
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-belleza);
