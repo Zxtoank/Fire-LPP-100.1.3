@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/firebase';
 import { collectionGroup, getDocs, orderBy, query } from 'firebase/firestore';
@@ -27,7 +28,7 @@ export default function AdminOrdersPage() {
   const { user, loading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ReactNode | string | null>(null);
 
   const isAdmin = user?.uid === process.env.NEXT_PUBLIC_ADMIN_UID;
 
@@ -56,7 +57,18 @@ export default function AdminOrdersPage() {
       } catch (err: any) {
         console.error("Error fetching orders:", err);
         if (err.code === 'failed-precondition') {
-          setError('A database index is required to view orders. Please follow the instructions in the Firebase console to create the necessary index for the "orders" collection group.');
+          const detailedError = (
+            <>
+              <p className="mb-2">This page requires a specific database index to function correctly. Please create a <strong>Collection group</strong> index in your Firestore database with these settings:</p>
+              <div className="text-sm font-mono bg-background p-3 rounded-md border border-yellow-300 text-foreground">
+                  <p><strong>Collection ID:</strong> <code className="font-semibold">orders</code></p>
+                  <p><strong>Field 1:</strong> <code className="font-semibold">orderedAt</code> (Order: Descending)</p>
+                  <p><strong>Field 2:</strong> <code className="font-semibold">__name__</code> (Order: Descending)</p>
+              </div>
+              <p className="mt-2 text-xs">Note: The error message in your browser's developer console contains a direct link to create this index automatically.</p>
+            </>
+          );
+          setError(detailedError);
         } else {
           setError('Failed to fetch orders. See console for details.');
         }
@@ -100,10 +112,17 @@ export default function AdminOrdersPage() {
         </CardHeader>
         <CardContent>
           {error ? (
-            <div className="p-4 rounded-md bg-destructive/10 border border-destructive/50 text-destructive">
-              <h4 className="font-bold">Error Loading Orders</h4>
-              <p>{error}</p>
-            </div>
+             typeof error === 'string' ? (
+                <div className="p-4 rounded-md bg-destructive/10 border border-destructive/50 text-destructive">
+                    <h4 className="font-bold">Error Loading Orders</h4>
+                    <p>{error}</p>
+                </div>
+             ) : (
+                <div className="p-4 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800/50 dark:text-yellow-200">
+                    <h4 className="font-bold mb-2">Action Required: Create Database Index</h4>
+                    <div>{error}</div>
+                </div>
+             )
           ) : orders.length > 0 ? (
             <Table>
               <TableHeader>
