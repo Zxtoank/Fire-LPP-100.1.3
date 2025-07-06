@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -526,20 +527,17 @@ export default function ImageEditor() {
 
     try {
         const canvas = await generateDownloadableCanvas(dpi);
-        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
-        if (blob) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `locket-photo-print-${dpi}dpi.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            toast({ title: "Success", description: "PNG download started." });
-        } else {
-            throw new Error('Canvas toBlob returned null');
-        }
+        const dataUrl = canvas.toDataURL('image/png');
+        
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `locket-photo-print-${dpi}dpi.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        toast({ title: "Success", description: "PNG download started." });
+
     } catch (error) {
         console.error("PNG Download Error:", error);
         toast({ variant: "destructive", title: "Error", description: "Failed to generate PNG file." });
@@ -559,7 +557,15 @@ export default function ImageEditor() {
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
         pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
-        pdf.save(`locket-photo-print-${dpi}dpi.pdf`);
+        
+        const dataUri = pdf.output('datauristring');
+        const a = document.createElement('a');
+        a.href = dataUri;
+        a.download = `locket-photo-print-${dpi}dpi.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
         toast({ title: "Success", description: "PDF download started." });
     } catch (error) {
         console.error("PDF Download Error:", error);
