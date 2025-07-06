@@ -59,13 +59,17 @@ export default function AdminOrdersPage() {
         if (err.code === 'failed-precondition') {
           const detailedError = (
             <>
-              <p className="mb-2">This page requires a specific database index to function correctly. Please create a <strong>Collection group</strong> index in your Firestore database with these settings:</p>
-              <div className="text-sm font-mono bg-background p-3 rounded-md border border-yellow-300 text-foreground">
-                  <p><strong>Collection ID:</strong> <code className="font-semibold">orders</code></p>
-                  <p><strong>Field 1:</strong> <code className="font-semibold">orderedAt</code> (Order: Descending)</p>
-                  <p><strong>Field 2:</strong> <code className="font-semibold">__name__</code> (Order: Descending)</p>
+              <p className="mb-2">
+                To view all orders, a special database index is required.
+                The easiest and recommended way to create it is by using the automatic link provided by Firebase.
+              </p>
+              <div className="text-sm font-mono bg-background p-3 rounded-md border border-yellow-300 text-foreground space-y-1">
+                  <p><strong>1. Open your browser's developer console.</strong></p>
+                  <p><strong>2. Find the error message that contains a link, like this:</strong></p>
+                  <p className="mt-1 text-destructive/80"><code>FirebaseError: The query requires an index. You can create it here: https://...</code></p>
+                  <p className="mt-2"><strong>3. Click that link.</strong> It will take you to the Firebase console with the correct index configuration pre-filled. Just click "Create".</p>
               </div>
-              <p className="mt-2 text-xs">Note: The error message in your browser's developer console contains a direct link to create this index automatically.</p>
+               <p className="mt-2 text-xs text-muted-foreground">The error you saw in the Firebase console means my previous manual instructions were likely incorrect, but this link will always be right.</p>
             </>
           );
           setError(detailedError);
