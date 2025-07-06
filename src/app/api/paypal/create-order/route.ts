@@ -9,8 +9,8 @@ const base = process.env.PAYPAL_MODE === 'live'
     : 'https://api-m.sandbox.paypal.com';
 
 async function getPayPalAccessToken() {
-    if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
-        const errorMessage = "PayPal API credentials (PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET) are not configured on the server. Please check your Netlify environment variables.";
+    if (!PAYPAL_CLIENT_ID || PAYPAL_CLIENT_ID.includes('HERE') || !PAYPAL_CLIENT_SECRET || PAYPAL_CLIENT_SECRET.includes('HERE')) {
+        const errorMessage = "PayPal server credentials (PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET) are missing or invalid. Please check your .env file for local development or your hosting provider's environment variables for production.";
         console.error("MISSING_PAYPAL_API_CREDENTIALS:", errorMessage);
         throw new Error(errorMessage);
     }
@@ -37,7 +37,7 @@ async function getPayPalAccessToken() {
             const errorJson = JSON.parse(errorBody);
             if (errorJson.error === 'invalid_client') {
                  console.error("PayPal authentication failed: 'invalid_client'. This is almost always due to an incorrect PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET in your environment variables.");
-                 throw new Error("PayPal client authentication failed. Please check server configuration and credentials on Netlify.");
+                 throw new Error("PayPal client authentication failed. Please check server configuration and credentials.");
             }
              throw new Error(`Failed to get access token from PayPal: ${errorJson.error_description || errorJson.error || 'Unknown PayPal error'}. Check server logs for details.`);
 

@@ -34,6 +34,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+  const isPaypalConfigured = PAYPAL_CLIENT_ID && !PAYPAL_CLIENT_ID.includes('HERE');
+
 
   const initialOptions = {
     clientId: PAYPAL_CLIENT_ID || "",
@@ -43,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
-      {PAYPAL_CLIENT_ID ? (
+      {isPaypalConfigured ? (
         <PayPalScriptProvider options={initialOptions}>
           {children}
         </PayPalScriptProvider>

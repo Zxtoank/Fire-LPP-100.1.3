@@ -140,6 +140,7 @@ export default function ImageEditor() {
   }, []);
   
   const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+  const paypalConfigError = !PAYPAL_CLIENT_ID || PAYPAL_CLIENT_ID.includes('HERE');
 
   const getSourceRect = useCallback(() => {
     if (!image || !canvasRef.current) return { sx: 0, sy: 0, sw: 0, sh: 0 };
@@ -809,8 +810,11 @@ export default function ImageEditor() {
              <CardContent className="pt-6 space-y-8">
               {isClient && (
                 <>
-                  {!PAYPAL_CLIENT_ID ? (
-                      <p className="text-sm text-red-500 p-2 text-center">PayPal is not configured. Purchases are disabled.</p>
+                  {paypalConfigError ? (
+                      <div className="p-4 rounded-md bg-destructive/10 border border-destructive/50 text-destructive text-sm">
+                          <h4 className="font-bold">PayPal Not Configured</h4>
+                          <p>Purchases are disabled. Please add your PayPal Client ID to the <code>.env</code> file.</p>
+                      </div>
                   ) : (
                     <>
                       {/* Export Options Section */}

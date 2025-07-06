@@ -178,15 +178,22 @@ export default function CheckoutPage() {
     return <div className="flex items-center justify-center h-screen"><Spinner className="w-12 h-12" /></div>;
   }
   
-  if (!PAYPAL_CLIENT_ID) {
+  if (!PAYPAL_CLIENT_ID || PAYPAL_CLIENT_ID.includes('HERE')) {
     return (
         <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
-            <Card>
+            <Card className="w-full max-w-lg shadow-lg">
                 <CardHeader>
-                    <CardTitle>Configuration Error</CardTitle>
+                    <CardTitle>PayPal Configuration Error</CardTitle>
+                    <CardDescription>
+                        Payment processing is currently disabled.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-red-500">PayPal Client ID is not configured. Please set the NEXT_PUBLIC_PAYPAL_CLIENT_ID environment variable.</p>
+                    <div className="p-4 rounded-md bg-red-50 border border-red-200 text-red-800">
+                      <p className="font-semibold mb-2">Action Required</p>
+                      <p>The PayPal Client ID is missing or invalid. Please add your PayPal credentials to the <code>.env</code> file to enable payments.</p>
+                      <p className="mt-2 text-sm">You can find these keys in your PayPal Developer Dashboard.</p>
+                    </div>
                 </CardContent>
             </Card>
         </main>
