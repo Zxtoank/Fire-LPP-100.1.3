@@ -111,6 +111,14 @@ const SectionHeader = ({ icon, title }: { icon?: React.ReactNode, title: string 
     </div>
 )
 
+const AmazonLogo = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 100 30" className={className} fill="currentColor" aria-hidden="true" role="img">
+        <path d="M25.82 21.34c-2.73.22-5.46.34-8.12.34-6.1 0-10.22-1.2-12.06-4.14-.98-1.57-1.3-3.7-1.3-6.14 0-5.1 2.7-8.3 7.8-8.3 3.1 0 5.8.9 7.7 2.6l-2.4 2.3c-1.3-1.2-2.8-1.8-4.5-1.8-2.6 0-4.3 1.6-4.3 4.2 0 2.9 1.5 4.1 4.3 4.1.9 0 2.2-.1 3.7-.3l.1-6.2h-3.4v-3.2h6.8v13.2zM42.22 21.34c-1.83.22-3.8.34-5.7.34-6.9 0-11.4-2.9-11.4-8.4s4.5-8.4 11.4-8.4c6.9 0 11.4 2.9 11.4 8.4 0 4.12-2.3 7.1-6.7 8.1l6.7 8.1h-4.3l-6-7.2h-1.3v7.2h-3.2V3.54h.1c1.8-.22 3.8-.34 5.6-.34 4.1 0 7.8 1.9 7.8 5.6 0 3.3-2.4 4.8-5.5 5.1v.1c2.4.4 4.3 2.1 4.3 5 0 2.3-1.4 4.1-3.9 5.2zM36.52 14c2.5 0 4.2-1.2 4.2-3.3s-1.7-3.3-4.2-3.3c-1.3 0-2.8.2-4.2.5v5.6c1.4.3 2.9.5 4.2.5zM59.32 15.14c0-4.6-3-6.9-8-6.9-5.3 0-9.5 2.6-9.5 6.9 0 4.5 4.2 6.9 9.5 6.9 5 0 8-2.3 8-6.9zm-4.7 0c0 2.6-1.8 4.1-4.8 4.1-2.9 0-4.7-1.5-4.7-4.1s1.8-4.1 4.7-4.1c3.1 0 4.8 1.5 4.8 4.1zM74.42 21.44c-1.2 1.3-2.6 1.8-4.1 1.8-2.3 0-3.6-1-3.6-3.4v-8.7h-3.2v9c0 4.1 2.2 6.1 5.7 6.1 2.3 0 4.2-.8 5.6-2.6l.1-2.8h-3.2v-1.4zM85.42 22.14l4.2-11.9h3.3l4.2 11.9h-3.3l-.9-2.7h-3.5l-.9 2.7h-3.1zM88.92 16.74h2.2l-1.1-3.4-1.1 3.4z" />
+        <path d="M57.65 23.23c-6.8 0-12.9-2.2-12.9-2.2-.1.1 2.6 2.3 7.6 2.3 4.8 0 8.3-1.6 8.3-1.6s-2 1.5-3 1.5z" />
+        <path d="M57.65 23.23c2.7 0 5-.6 6.6-1.4 2.8-1.5 4.1-4.1 4.1-4.1s-2.1 1.7-4.5 1.7c-2.4 0-4.2-1.3-4.2-1.3s-2.1 2.8 4.2 2.8c3.2 0 6.1-1.2 8.2-3.1.2-.2.4-.4.5-.6.2-.2.3-.4.3-.4s.2-.4.1-.7c-.1-.3-.2-.5-.4-.7-.2-.2-.4-.4-.7-.5-.3-.1-.6-.2-1-.3s-1.1-.1-1.8-.1c-2.3 0-4.5.3-6.6.8-2.1.5-4.1 1.3-5.9 2.3-1.8 1-3.3 2.3-4.5 3.7-.6.7-.9 1.3-.9 1.3s1.2-1.7 4.1-2.9c2.9-1.2 6.8-1.8 11.2-1.8 4.5 0 8.3.6 11.2 1.8 2.9 1.2 4.1 2.9 4.1 2.9s-1.3-2.4-4.5-3.7-5.9-2.3-8.2-2.3c-2.3 0-4.5.4-6.6.8-2.1.4-4.1 1.2-5.9 2.1-1.8.9-3.3 2.1-4.5 3.4-.6.6-.9 1.2-.9 1.2s1.2-1.6 4.1-2.7c2.9-1.1 6.8-1.7 11.2-1.7s8.3.6 11.2 1.7c2.9 1.1 4.1 2.7 4.1 2.7s-1.3-2.3-4.5-3.4c-3.2-1.1-5.9-1.7-8.2-1.7" />
+    </svg>
+);
+
 
 export default function ImageEditor() {
   const { toast } = useToast();
@@ -532,12 +540,9 @@ export default function ImageEditor() {
         const canvas = await generateDownloadableCanvas(dpi);
         const fileName = `locket-photo-print-${dpi}dpi.${format}`;
         
-        // This is the interface to the native Android app.
-        // It will only exist when running inside the Android WebView.
         const androidBridge = (window as any).AndroidBridge;
 
         if (androidBridge && typeof androidBridge.saveFile === 'function') {
-            // Native Android App (WebView) Path
             let base64Data: string;
             let mimeType: string;
 
@@ -545,43 +550,34 @@ export default function ImageEditor() {
                 const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
                 const imgData = canvas.toDataURL('image/png');
                 pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
-                // Get Base64 content without the 'data:application/pdf;base64,' prefix
                 base64Data = pdf.output('datauristring').split(',')[1];
                 mimeType = 'application/pdf';
             } else {
-                // Get Base64 content without the 'data:image/png;base64,' prefix
                 base64Data = canvas.toDataURL('image/png').split(',')[1];
                 mimeType = 'image/png';
             }
             
             androidBridge.saveFile(base64Data, fileName, mimeType);
-            toast({ title: "Download Started", description: "Check your device's notifications." });
 
         } else {
-            // Standard Web Browser Path
-            let fileBlob: Blob | null = null;
+            const link = document.createElement('a');
+            link.download = fileName;
+
             if (format === 'pdf') {
                 const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
                 const imgData = canvas.toDataURL('image/png');
                 pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
-                fileBlob = pdf.output('blob');
+                const pdfBlob = pdf.output('blob');
+                link.href = URL.createObjectURL(pdfBlob);
             } else {
-                fileBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                if (!imageBlob) throw new Error("Could not create image blob");
+                link.href = URL.createObjectURL(imageBlob);
             }
-
-            if (!fileBlob) {
-                throw new Error('Failed to generate file for download.');
-            }
-
-            const url = URL.createObjectURL(fileBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            toast({ title: "Download Complete!", description: `Started downloading ${fileName}` });
+            
+            link.click();
+            URL.revokeObjectURL(link.href);
+            toast({ title: "Download Started", description: `Downloading ${fileName}` });
         }
 
     } catch (error) {
@@ -979,16 +975,23 @@ export default function ImageEditor() {
                       {/* Amazon Link Section */}
                       <div className="pt-4">
                           <SectionHeader icon={<ShoppingCart className="text-amber-600" />} title="Recommended Supplies" />
-                           <Card className="p-6 mt-4 border-amber-200 border bg-amber-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
-                              <div>
-                                  <h4 className="font-semibold text-lg">Locket Photo Paper</h4>
-                                  <p className="text-muted-foreground mt-1">Get the official high-gloss photo paper for perfect, vibrant locket-sized prints every time.</p>
+                           <Card className="p-6 mt-4 border-amber-200 border bg-amber-50/50">
+                              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                  <div className="flex-grow">
+                                      <h4 className="font-semibold text-lg">Locket Photo Paper</h4>
+                                      <p className="text-muted-foreground mt-1">Get the official high-gloss photo paper for perfect, vibrant locket-sized prints every time.</p>
+                                  </div>
+                                  <a href="https://www.amazon.com/gp/product/B0FBM249W3" target="_blank" rel="noopener noreferrer" className="flex-shrink-0 w-full md:w-auto">
+                                      <Button className="w-full md:w-auto mt-2 md:mt-0 bg-amber-500 hover:bg-amber-600 text-white" size="lg">
+                                          <ShoppingCart className="mr-2"/> Buy on Amazon
+                                      </Button>
+                                  </a>
                               </div>
-                              <a href="https://www.amazon.com/gp/product/B0FBM249W3" target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                                  <Button className="mt-2 md:mt-0 bg-amber-500 hover:bg-amber-600 text-white" size="lg">
-                                      <ShoppingCart className="mr-2"/> Buy on Amazon
-                                  </Button>
-                              </a>
+                              <div className="mt-4 pt-4 border-t border-amber-300/50 flex justify-end">
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      Sold on <AmazonLogo className="h-5 text-gray-700" />
+                                  </div>
+                              </div>
                           </Card>
                       </div>
 
@@ -1008,7 +1011,7 @@ export default function ImageEditor() {
                               <div className="text-center md:text-right flex-shrink-0">
                                   <p className="text-3xl font-bold text-purple-700">$9.99<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
                                   <Button className="mt-2 bg-violet-500 hover:bg-violet-600 text-white" size="lg" disabled>
-                                      <Star className="mr-2"/> View Plans
+                                      Coming Soon
                                   </Button>
                               </div>
                           </Card>
