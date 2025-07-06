@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ImagePlus, ZoomIn, ZoomOut, RefreshCw, Replace, Square, Circle, Heart, Download, FileText, Package, Star, Lightbulb, Crown, ShoppingCart, User } from 'lucide-react';
 import { Spinner } from '@/components/spinner';
-import jsPDF from 'jspdf';
 import { useAuth } from '@/hooks/useAuth';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -93,10 +92,6 @@ const drawHeart = (ctx: CanvasRenderingContext2D, cx: number, y: number, width: 
 };
 
 
-const PayPalIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7.754 6.019c.174.96.832 1.665 2.12 1.665h2.985c2.254 0 3.332-1.127 2.87-3.483-.443-2.261-2.086-3.18-4.143-3.18H8.81c-.84 0-1.42.38-1.74 1.18-.32.799-.174 1.74.684 2.818M16.425 8.414h-3.126c-2.348 0-3.323 1.136-2.818 4.055.435 2.463 1.83 3.323 4.018 3.323h1.168c.81 0 1.25-.435 1.438-.96.188-.525.136-1.168-.273-1.898-.409-.73-.97-1.18-1.855-1.18h-1.25c-.56 0-.84-.237-.96-.693-.119-.454.08-.85.748-.85h3.483c.97 0 1.57-.454 1.76-1.25.19-.79-.17-1.57-.96-1.57h-.35zM21.909 8.23c-.273-2.12-1.637-3.483-3.82-3.483h-3.474c-2.057 0-3.422.92-3.82 3.125-.4 2.206.637 3.422 2.819 3.422h.909c-.492 2.91-2.319 3.864-4.646 3.864h-2.12c-2.057 0-3.125-.97-2.61-3.23.493-2.19 1.855-3.07 3.69-3.07H8.81c.525 0 .97-.136 1.25-.748.28-.612.33-1.42.055-2.218-.27-.75-1.11-1.17-2.12-1.17H4.39c-2.505 0-4.256 1.57-3.636 4.78.638 3.266 2.61 4.727 5.46 4.727h1.42c.493 2.18 2.057 3.368 4.383 3.368h2.32c3.21 0 4.89-1.8 5.688-5.053.8-3.25.05-5.35-2.78-5.35z"></path></svg>
-);
-
 const OvalIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
         <ellipse cx="12" cy="12" rx="6" ry="9" />
@@ -112,10 +107,21 @@ const SectionHeader = ({ icon, title }: { icon?: React.ReactNode, title: string 
 )
 
 const AmazonLogo = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 100 30" className={className} fill="currentColor" aria-hidden="true" role="img">
-        <path d="M25.82 21.34c-2.73.22-5.46.34-8.12.34-6.1 0-10.22-1.2-12.06-4.14-.98-1.57-1.3-3.7-1.3-6.14 0-5.1 2.7-8.3 7.8-8.3 3.1 0 5.8.9 7.7 2.6l-2.4 2.3c-1.3-1.2-2.8-1.8-4.5-1.8-2.6 0-4.3 1.6-4.3 4.2 0 2.9 1.5 4.1 4.3 4.1.9 0 2.2-.1 3.7-.3l.1-6.2h-3.4v-3.2h6.8v13.2zM42.22 21.34c-1.83.22-3.8.34-5.7.34-6.9 0-11.4-2.9-11.4-8.4s4.5-8.4 11.4-8.4c6.9 0 11.4 2.9 11.4 8.4 0 4.12-2.3 7.1-6.7 8.1l6.7 8.1h-4.3l-6-7.2h-1.3v7.2h-3.2V3.54h.1c1.8-.22 3.8-.34 5.6-.34 4.1 0 7.8 1.9 7.8 5.6 0 3.3-2.4 4.8-5.5 5.1v.1c2.4.4 4.3 2.1 4.3 5 0 2.3-1.4 4.1-3.9 5.2zM36.52 14c2.5 0 4.2-1.2 4.2-3.3s-1.7-3.3-4.2-3.3c-1.3 0-2.8.2-4.2.5v5.6c1.4.3 2.9.5 4.2.5zM59.32 15.14c0-4.6-3-6.9-8-6.9-5.3 0-9.5 2.6-9.5 6.9 0 4.5 4.2 6.9 9.5 6.9 5 0 8-2.3 8-6.9zm-4.7 0c0 2.6-1.8 4.1-4.8 4.1-2.9 0-4.7-1.5-4.7-4.1s1.8-4.1 4.7-4.1c3.1 0 4.8 1.5 4.8 4.1zM74.42 21.44c-1.2 1.3-2.6 1.8-4.1 1.8-2.3 0-3.6-1-3.6-3.4v-8.7h-3.2v9c0 4.1 2.2 6.1 5.7 6.1 2.3 0 4.2-.8 5.6-2.6l.1-2.8h-3.2v-1.4zM85.42 22.14l4.2-11.9h3.3l4.2 11.9h-3.3l-.9-2.7h-3.5l-.9 2.7h-3.1zM88.92 16.74h2.2l-1.1-3.4-1.1 3.4z" />
-        <path d="M57.65 23.23c-6.8 0-12.9-2.2-12.9-2.2-.1.1 2.6 2.3 7.6 2.3 4.8 0 8.3-1.6 8.3-1.6s-2 1.5-3 1.5z" />
-        <path d="M57.65 23.23c2.7 0 5-.6 6.6-1.4 2.8-1.5 4.1-4.1 4.1-4.1s-2.1 1.7-4.5 1.7c-2.4 0-4.2-1.3-4.2-1.3s-2.1 2.8 4.2 2.8c3.2 0 6.1-1.2 8.2-3.1.2-.2.4-.4.5-.6.2-.2.3-.4.3-.4s.2-.4.1-.7c-.1-.3-.2-.5-.4-.7-.2-.2-.4-.4-.7-.5-.3-.1-.6-.2-1-.3s-1.1-.1-1.8-.1c-2.3 0-4.5.3-6.6.8-2.1.5-4.1 1.3-5.9 2.3-1.8 1-3.3 2.3-4.5 3.7-.6.7-.9 1.3-.9 1.3s1.2-1.7 4.1-2.9c2.9-1.2 6.8-1.8 11.2-1.8 4.5 0 8.3.6 11.2 1.8 2.9 1.2 4.1 2.9 4.1 2.9s-1.3-2.4-4.5-3.7-5.9-2.3-8.2-2.3c-2.3 0-4.5.4-6.6.8-2.1.4-4.1 1.2-5.9 2.1-1.8.9-3.3 2.1-4.5 3.4-.6.6-.9 1.2-.9 1.2s1.2-1.6 4.1-2.7c2.9-1.1 6.8-1.7 11.2-1.7s8.3.6 11.2 1.7c2.9 1.1 4.1 2.7 4.1 2.7s-1.3-2.3-4.5-3.4c-3.2-1.1-5.9-1.7-8.2-1.7" />
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 106 32" 
+        className={className} 
+        aria-hidden="true" 
+        role="img"
+    >
+        <path 
+            fill="#232F3E" 
+            d="M23.6,19.3c-2.4,0.2-4.8,0.3-7.1,0.3c-5.4,0-8.9-1.1-10.6-3.6c-0.9-1.4-1.1-3.2-1.1-5.4c0-4.5,2.4-7.3,6.8-7.3 c2.7,0,5.1,0.8,6.8,2.3l-2.1,2C15,6.8,13.6,6.3,12,6.3c-2.3,0-3.8,1.4-3.8,3.7c0,2.5,1.3,3.6,3.8,3.6c0.8,0,1.9-0.1,3.2-0.3 l0.1-5.5h-3V7.6h6V19.3z M37.4,19.3c-1.6,0.2-3.3,0.3-5,0.3c-6.1,0-10-2.6-10-7.4S26.4,4.9,32.4,4.9c6.1,0,10,2.6,10,7.4 c0,3.6-2,6.2-5.9,7.1l5.9,7.1h-3.8l-5.3-6.4h-1.1v6.4h-2.8V5.5c1.6-0.2,3.3-0.3,5-0.3c3.6,0,6.8,1.7,6.8,4.9 c0,2.9-2.1,4.2-4.8,4.5v0.1c2.1,0.3,3.8,1.8,3.8,4.4C44.2,18.4,43,19.9,40.5,20.8z M32.4,14.6c2.2,0,3.7-1,3.7-2.9 c0-1.8-1.5-2.9-3.7-2.9c-1.2,0-2.5,0.2-3.7,0.4v5C30,14.5,31.3,14.6,32.4,14.6z M52.5,13.8c0-4-2.6-6-7-6c-4.7,0-8.3,2.3-8.3,6 c0,3.9,3.7,6,8.3,6C49.8,19.8,52.5,17.7,52.5,13.8z M48.3,13.8c0,2.3-1.6,3.6-4.2,3.6s-4.1-1.3-4.1-3.6s1.6-3.6,4.1-3.6 C46.8,10.2,48.3,11.5,48.3,13.8z M65.7,19.4c-1,1.1-2.3,1.6-3.6,1.6c-2,0-3.2-0.9-3.2-3V9.3h-2.8v7.9c0,3.6,1.9,5.3,5,5.3 c2,0,3.7-0.7,4.9-2.3l0.1-2.4h-2.8V19.4z M75.4,19.9l3.7-10.5h2.9l3.7,10.5h-2.9l-0.8-2.4h-3.1l-0.8,2.4H75.4z M78.4,15.3h1.9 l-1-3L78.4,15.3z M97.6,19.3c-2.4,0.2-4.8,0.3-7.1,0.3c-5.4,0-8.9-1.1-10.6-3.6c-0.9-1.4-1.1-3.2-1.1-5.4c0-4.5,2.4-7.3,6.8-7.3 c2.7,0,5.1,0.8,6.8,2.3l-2.1,2c-1.3-1-2.6-1.5-4.2-1.5c-2.3,0-3.8,1.4-3.8,3.7c0,2.5,1.3,3.6,3.8,3.6c0.8,0,1.9-0.1,3.2-0.3l0.1-5.5 h-3V7.6h6V19.3z"
+        />
+        <path 
+            fill="#FF9900" 
+            d="M71.3,21.8c8.3-2.3,13.3-8,14.7-10.4c0.1-0.2,0.2-0.4,0.1-0.7c-0.1-0.3-0.4-0.4-0.7-0.4c-0.1,0-0.2,0-0.2,0 c-0.1,0-0.1,0-0.2,0.1C85,10.5,73.3,17.4,61.3,18c-4-0.1-9.4-1.4-12.9-4.3c-0.2-0.2-0.5-0.1-0.7,0.1c-0.2,0.2-0.1,0.5,0.1,0.7 c0,0,0,0,0,0c3.1,3.2,8,4.6,12.2,4.8c1,0,2.2,0,3.2-0.1c0.1,0,0.1,0,0.2,0c3.3-0.3,6.8-1,9.9-2.2c0.2,0.5,0.4,1,0.6,1.5 c-3.2,1.3-6.8,2-10.5,2.2c-0.1,0-0.1,0-0.2,0c-1.1,0.1-2.3,0.1-3.5,0.1c-4.4-0.1-9.7-1.4-13.1-4.8c-0.2-0.2-0.5-0.2-0.7,0 c-0.2,0.2-0.2,0.5,0,0.7c3.6,3.5,9,5,14,5.1h0.2C61.4,26.7,71.2,25.3,71.3,21.8z"
+        />
     </svg>
 );
 
@@ -546,24 +552,27 @@ export default function ImageEditor() {
             let base64Data: string;
             let mimeType: string;
 
-            if (format === 'pdf') {
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
-                const imgData = canvas.toDataURL('image/png');
-                pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
-                base64Data = pdf.output('datauristring').split(',')[1];
-                mimeType = 'application/pdf';
-            } else {
-                base64Data = canvas.toDataURL('image/png').split(',')[1];
-                mimeType = 'image/png';
-            }
-            
-            androidBridge.saveFile(base64Data, fileName, mimeType);
+            const toBase64 = async (): Promise<[string, string]> => {
+                if (format === 'pdf') {
+                    const { default: jsPDF } = await import('jspdf');
+                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+                    const imgData = canvas.toDataURL('image/png');
+                    pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
+                    return [pdf.output('datauristring').split(',')[1], 'application/pdf'];
+                } else {
+                    return [canvas.toDataURL('image/png').split(',')[1], 'image/png'];
+                }
+            };
 
+            [base64Data, mimeType] = await toBase64();
+            androidBridge.saveFile(base64Data, fileName, mimeType);
+            
         } else {
             const link = document.createElement('a');
             link.download = fileName;
 
             if (format === 'pdf') {
+                const { default: jsPDF } = await import('jspdf');
                 const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
                 const imgData = canvas.toDataURL('image/png');
                 pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
@@ -572,7 +581,7 @@ export default function ImageEditor() {
             } else {
                 const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 if (!imageBlob) throw new Error("Could not create image blob");
-                link.href = URL.createObjectURL(imageBlob);
+                link.href = URL.createObjectURL(imageBlob as Blob);
             }
             
             link.click();
@@ -989,7 +998,7 @@ export default function ImageEditor() {
                               </div>
                               <div className="mt-4 pt-4 border-t border-amber-300/50 flex justify-end">
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                      Sold on <AmazonLogo className="h-5 text-gray-700" />
+                                      Sold on <AmazonLogo className="h-6" />
                                   </div>
                               </div>
                           </Card>
