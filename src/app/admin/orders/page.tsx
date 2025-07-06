@@ -58,19 +58,39 @@ export default function AdminOrdersPage() {
         console.error("Error fetching orders:", err);
         if (err.code === 'failed-precondition') {
           const detailedError = (
-            <>
-              <p className="mb-2">
-                To view all orders, a special database index is required.
-                The easiest and recommended way to create it is by using the automatic link provided by Firebase.
-              </p>
-              <div className="text-sm font-mono bg-background p-3 rounded-md border border-yellow-300 text-foreground space-y-1">
-                  <p><strong>1. Open your browser's developer console.</strong></p>
-                  <p><strong>2. Find the error message that contains a link, like this:</strong></p>
-                  <p className="mt-1 text-destructive/80"><code>FirebaseError: The query requires an index. You can create it here: https://...</code></p>
-                  <p className="mt-2"><strong>3. Click that link.</strong> It will take you to the Firebase console with the correct index configuration pre-filled. Just click "Create".</p>
-              </div>
-               <p className="mt-2 text-xs text-muted-foreground">The error you saw in the Firebase console means my previous manual instructions were likely incorrect, but this link will always be right.</p>
-            </>
+            <div className="space-y-4">
+               <p>I understand creating the index has been a challenge, and I apologize for the difficulty. The Firebase console link is truly the most reliable way to solve this. Let's try one more time with a refined process to clear out any old attempts.</p>
+
+                <div>
+                    <h4 className="font-semibold text-md mb-2">Step 1: Delete Any Previous 'orders' Indexes</h4>
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                        <li>Go to your <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Firebase Console</a> → Firestore → Indexes.</li>
+                        <li>Look for any existing indexes on the `orders` collection. If you see any, please **delete them**. This ensures we're starting fresh.</li>
+                    </ul>
+                </div>
+              
+                <div>
+                  <h4 className="font-semibold text-md mb-2">Step 2: Find the Automatic Index Creation Link</h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                      <li>Return to this admin page in your browser and refresh.</li>
+                      <li>Open your browser's **Developer Console** (usually by pressing F12, or Right-Click → Inspect → Console tab).</li>
+                      <li>You will see a Firebase error message in the console. It will contain a long `https://...` link. It looks like this:</li>
+                      <li className="list-none my-2">
+                        <code className="block p-2 rounded-md bg-destructive/10 text-destructive text-xs">FirebaseError: The query requires an index. You can create it here: https://...</code>
+                      </li>
+                      <li>**Click that link.**</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-md mb-2">Step 3: Create the Index</h4>
+                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                      <li>The link will open the Firebase Console with all the fields pre-filled correctly.</li>
+                      <li>Just click the **Create** button. The index will take a few minutes to build.</li>
+                  </ul>
+                </div>
+                 <p className="text-xs pt-2 text-muted-foreground">This process ensures you get the exact index your project needs without any guesswork. Once the index is built, this page will load correctly.</p>
+            </div>
           );
           setError(detailedError);
         } else {
@@ -123,7 +143,7 @@ export default function AdminOrdersPage() {
                 </div>
              ) : (
                 <div className="p-4 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800/50 dark:text-yellow-200">
-                    <h4 className="font-bold mb-2">Action Required: Create Database Index</h4>
+                    <h4 className="font-bold mb-3 text-lg">Action Required: Create Database Index</h4>
                     <div>{error}</div>
                 </div>
              )
