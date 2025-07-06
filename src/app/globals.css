@@ -10,8 +10,8 @@
     --card-foreground: 215 28% 17%;
     --popover: 0 0% 100%;
     --popover-foreground: 215 28% 17%;
-    --primary: 260 80% 75%; /* Light Purple */
-    --primary-foreground: 215 28% 17%; /* Dark text for contrast on light purple */
+    --primary: 260 83% 63%; /* Purple */
+    --primary-foreground: 0 0% 100%; /* White text for contrast on purple */
     --secondary: 210 40% 96%; /* Lighter cool gray */
     --secondary-foreground: 215 28% 17%;
     --muted: 210 40% 96%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 0 0% 98%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 260 80% 75%; /* Light Purple */
+    --ring: 260 83% 63%; /* Purple */
     --radius: 0.8rem;
   }
  
@@ -33,7 +33,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
-    --primary: 260 70% 72%; /* Light Purple for dark mode */
+    --primary: 260 80% 75%; /* Purple for dark mode */
     --primary-foreground: 0 0% 98%;
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -45,7 +45,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 260 70% 72%; /* Light Purple for dark mode */
+    --ring: 260 80% 75%; /* Purple for dark mode */
   }
 }
 
