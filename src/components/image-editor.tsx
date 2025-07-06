@@ -3,6 +3,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,9 @@ const PRINT_WIDTH_IN = 4;
 const PRINT_HEIGHT_IN = 6;
 const PRINT_WIDTH_PX = PRINT_WIDTH_IN * PRINT_DPI_PREVIEW;
 const PRINT_HEIGHT_PX = PRINT_HEIGHT_IN * PRINT_DPI_PREVIEW;
+
+// High-quality SVG for the Amazon logo, encoded as a data URI
+const amazonLogoDataUri = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDYuMyAzMi4yIiB4bWw6c3BhY2U9InByZXNlcnZlIj48cGF0aCBmaWxsPSIjMjMyRjNFIiBkPSJNMjMuOSAxOS4zYy0yLjQuMi00LjguMy03LjIuMy01LjUgMC05LTEuMS0xMC43LTMuNi0uOS0xLjQtMS4xLTMuMi0xLjEtNS40IDAtNC41IDIuNC03LjMgNi45LTcuMyAyLjcgMCA1LjIuOCA2LjkgMi4zbC0yLjEgMmMtMS4zLTEtMi43LTEuNS00LjMtMS41LTIuMyAwLTMuOCAxLjQtMy44IDMuNyAwIDIuNSAxLjMgMy42IDMuOCAzLjYuOCAwIDItLjEgMy4yLS4zbC4xLTUuNWgtM1Y3LjZoNi4xdjExLjd6TTM3LjcgMTkuM2MtMS42LjItMy4zLjMtNS4xLjMtNi4xIDAtMTAuMS0yLjYtMTAuMS03LjRTMjYuNyA0LjkgMzIuNyA0LjljNi4xIDAgMTAuMSAyLjYgMTAuMSA3LjQgMCAzLjYtMiA2LjItNiA3LjFsNiA3LjFoLTMuOEwzMy42IDIwaC0xLjF2Ni40aC0yLjhWNS41YzEuNi0uMiAzLjMtLjMgNS4xLS4zIDMuNiAwIDYuOSAxLjcgNi45IDQuOSAwIDIuOS0yLjEgNC4yLTQuOSA0LjV2LjFjMi4xLjMgMy44IDEuOCAzLjggNC40LjEgMi0xLjEgMy41LTMuNiA0LjR6TTMyLjcgMTQuNmMyLjIgMCAzLjctMSAzLjctMi45IDAtMS44LTEuNS0yLjktMy43LTIuOS0xLjIgMC0yLjUuMi0zLjcuNHY1YzEuNC4xIDIuNy4yIDMuNy4yek01Mi45IDEzLjhjMC00LTIuNi02LTcuMS02LTQuNyAwLTguNCAyLjMtOC40IDZzMy44IDYgOC40IDZjNC42LS4xIDcuMS0yLjEgNy4xLTZ6bS00LjIgMGMwIDIuMy0xLjYgMy42LTQuMiAzLjZzLTQuMS0xLjMtNC4xLTMuNiAxLjUtMy42IDQuMS0zLjZjMi42IDAgNC4yIDEuMyA0LjIgMy42ek02Ni4xIDE5LjRjLTEgMS4xLTIuMyAxLjYtMy43IDEuNi0yIDAtMy4yLS45LTMuMi0zVjkuM2gtMi44djcuOWMwIDMuNiAxLjkgNS4zIDUgNS4zIDIgMCAzLjgtLjcgNC45LTIuM2wuMS0yLjRoLTIuOWwuNi4xek03NS44IDE5LjlsMy43LTEwLjVoMi45bDMuNyAxMC41aC0yLjlsLS44LTIuNGgtMy4xbC0uOCAyLjRoLTIuN3ptMy4xLTQuNmgxLjlsLTEtMy0xIDN6TTk4IDE5LjNjLTIuNC4yLTQuOC4zLTcuMi4zLTUuNSAwLTktMS4xLTEwLjctMy42LS45LTEuNC0xLjEtMy4yLTEuMS01LjQgMC00LjUgMi40LTcuMyA2LjktNy4zIDIuNyAwIDUuMi44IDYuOSAyLjNsLTIuMSAybC0xLjMtMS0yLjctMS41LTQuMy0xLjVjLTIuMyAwLTMuOCAxLjQtMy44IDMuNyAwIDIuNSAxLjMgMy42IDMuOCAzLjYuOCAwIDItLjEgMy4yLS4zbC4xLTUuNWgtM1Y3LjZoNi4xdjExLjd6Ii8+PHBhdGggZmlsbD0iI0ZGOTkwMCIgZD0iTTcxLjYgMjEuOGM4LjMtMi4zIDEzLjMtOCAxNC44LTEwLjQuMS0uMi4yLS40LjEtLjctLjEtLjMtLjQtLjQtLjctLjQtLjEgMC0uMiAwLS4yIDAtLjEgMC0uMSAwLS4yLjEtMS40IDAtMTMuMSA2LjktMjUuMSA3LjUtNC0uMS05LjQtMS40LTEyLjktNC4zLS4yLS4yLS41LS4xLS43LjFzLS4xLjUuMS43YzAgMCAwIDAgMCAwIDMuMSAzLjIgOCA0LjYgMTIuMyA0LjggMSAwIDIuMiAwIDMuMi0uMS4xIDAgLjEgMCAuMiAwIDMuMy0uMyA2LjgtMSA5LjktMi4yLjIuNS40IDEgLjYgMS41LTMuMiAxLjMtNi44IDItMTAuNiAyLjItLjEgMC0uMSAwLS4yIDAtMS4xLjEtMi4zLjEtMy41LjEtNC40LS4xLTkuOC0xLjQtMTMuMi00LjgtLjItLjItLjUtLjItLjcgMC0uMi4yLS4yLjUuMS43IDMuNiAzLjUgOSA1IDguMSA1LjFoLjJjMTAuMS00LjQgMTkuOS01LjggMjAtOS4zek0iLz48L3N2Zz4=";
 
 
 const drawHeart = (ctx: CanvasRenderingContext2D, cx: number, y: number, width: number, height: number) => {
@@ -105,26 +109,6 @@ const SectionHeader = ({ icon, title }: { icon?: React.ReactNode, title: string 
         <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
     </div>
 )
-
-const AmazonLogo = ({ className }: { className?: string }) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        viewBox="0 0 106 32" 
-        className={className} 
-        aria-hidden="true" 
-        role="img"
-    >
-        <path 
-            fill="#232F3E" 
-            d="M23.6,19.3c-2.4,0.2-4.8,0.3-7.1,0.3c-5.4,0-8.9-1.1-10.6-3.6c-0.9-1.4-1.1-3.2-1.1-5.4c0-4.5,2.4-7.3,6.8-7.3 c2.7,0,5.1,0.8,6.8,2.3l-2.1,2C15,6.8,13.6,6.3,12,6.3c-2.3,0-3.8,1.4-3.8,3.7c0,2.5,1.3,3.6,3.8,3.6c0.8,0,1.9-0.1,3.2-0.3 l0.1-5.5h-3V7.6h6V19.3z M37.4,19.3c-1.6,0.2-3.3,0.3-5,0.3c-6.1,0-10-2.6-10-7.4S26.4,4.9,32.4,4.9c6.1,0,10,2.6,10,7.4 c0,3.6-2,6.2-5.9,7.1l5.9,7.1h-3.8l-5.3-6.4h-1.1v6.4h-2.8V5.5c1.6-0.2,3.3-0.3,5-0.3c3.6,0,6.8,1.7,6.8,4.9 c0,2.9-2.1,4.2-4.8,4.5v0.1c2.1,0.3,3.8,1.8,3.8,4.4C44.2,18.4,43,19.9,40.5,20.8z M32.4,14.6c2.2,0,3.7-1,3.7-2.9 c0-1.8-1.5-2.9-3.7-2.9c-1.2,0-2.5,0.2-3.7,0.4v5C30,14.5,31.3,14.6,32.4,14.6z M52.5,13.8c0-4-2.6-6-7-6c-4.7,0-8.3,2.3-8.3,6 c0,3.9,3.7,6,8.3,6C49.8,19.8,52.5,17.7,52.5,13.8z M48.3,13.8c0,2.3-1.6,3.6-4.2,3.6s-4.1-1.3-4.1-3.6s1.6-3.6,4.1-3.6 C46.8,10.2,48.3,11.5,48.3,13.8z M65.7,19.4c-1,1.1-2.3,1.6-3.6,1.6c-2,0-3.2-0.9-3.2-3V9.3h-2.8v7.9c0,3.6,1.9,5.3,5,5.3 c2,0,3.7-0.7,4.9-2.3l0.1-2.4h-2.8V19.4z M75.4,19.9l3.7-10.5h2.9l3.7,10.5h-2.9l-0.8-2.4h-3.1l-0.8,2.4H75.4z M78.4,15.3h1.9 l-1-3L78.4,15.3z M97.6,19.3c-2.4,0.2-4.8,0.3-7.1,0.3c-5.4,0-8.9-1.1-10.6-3.6c-0.9-1.4-1.1-3.2-1.1-5.4c0-4.5,2.4-7.3,6.8-7.3 c2.7,0,5.1,0.8,6.8,2.3l-2.1,2c-1.3-1-2.6-1.5-4.2-1.5c-2.3,0-3.8,1.4-3.8,3.7c0,2.5,1.3,3.6,3.8,3.6c0.8,0,1.9-0.1,3.2-0.3l0.1-5.5 h-3V7.6h6V19.3z"
-        />
-        <path 
-            fill="#FF9900" 
-            d="M71.3,21.8c8.3-2.3,13.3-8,14.7-10.4c0.1-0.2,0.2-0.4,0.1-0.7c-0.1-0.3-0.4-0.4-0.7-0.4c-0.1,0-0.2,0-0.2,0 c-0.1,0-0.1,0-0.2,0.1C85,10.5,73.3,17.4,61.3,18c-4-0.1-9.4-1.4-12.9-4.3c-0.2-0.2-0.5-0.1-0.7,0.1c-0.2,0.2-0.1,0.5,0.1,0.7 c0,0,0,0,0,0c3.1,3.2,8,4.6,12.2,4.8c1,0,2.2,0,3.2-0.1c0.1,0,0.1,0,0.2,0c3.3-0.3,6.8-1,9.9-2.2c0.2,0.5,0.4,1,0.6,1.5 c-3.2,1.3-6.8,2-10.5,2.2c-0.1,0-0.1,0-0.2,0c-1.1,0.1-2.3,0.1-3.5,0.1c-4.4-0.1-9.7-1.4-13.1-4.8c-0.2-0.2-0.5-0.2-0.7,0 c-0.2,0.2-0.2,0.5,0,0.7c3.6,3.5,9,5,14,5.1h0.2C61.4,26.7,71.2,25.3,71.3,21.8z"
-        />
-    </svg>
-);
-
 
 export default function ImageEditor() {
   const { toast } = useToast();
@@ -998,7 +982,8 @@ export default function ImageEditor() {
                               </div>
                               <div className="mt-4 pt-4 border-t border-amber-300/50 flex justify-end">
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                      Sold on <AmazonLogo className="h-6" />
+                                      <span>Sold on</span>
+                                      <Image src={amazonLogoDataUri} alt="Amazon logo" width={75} height={23} className="h-6 w-auto" />
                                   </div>
                               </div>
                           </Card>
