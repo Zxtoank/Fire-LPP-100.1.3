@@ -49,6 +49,12 @@ export function Header() {
             <RefreshCw className="h-5 w-5" />
             <span className="sr-only">Refresh</span>
         </Button>
+        {isAdmin && pathname !== '/admin/orders' && (
+            <Button variant="outline" size="sm" onClick={() => router.push('/admin/orders')} className="hidden sm:inline-flex">
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                Admin
+            </Button>
+        )}
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
