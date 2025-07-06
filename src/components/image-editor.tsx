@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -983,7 +983,7 @@ export default function ImageEditor() {
                               <div className="mt-4 pt-4 border-t border-amber-300/50 flex justify-end">
                                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                       <span>Sold on</span>
-                                      <Image src={amazonLogoDataUri} alt="Amazon logo" width={75} height={23} className="h-6 w-auto" />
+                                      <NextImage src={amazonLogoDataUri} alt="Amazon logo" width={75} height={23} className="h-6 w-auto" />
                                   </div>
                               </div>
                           </Card>
