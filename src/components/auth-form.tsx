@@ -159,14 +159,19 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
           <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
         </div>
       </div>
-      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
-        {isGoogleLoading ? (
-            <Spinner className="mr-2 h-4 w-4" />
-        ) : (
-            <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.3 1.84-4.32 1.84-5.24 0-9.48-4.24-9.48-9.48s4.24-9.48 9.48-9.48c2.84 0 4.96 1.12 6.56 2.64l-2.32 2.32c-.8-.76-1.84-1.32-3.24-1.32-3.16 0-5.72 2.56-5.72 5.72s2.56 5.72 5.72 5.72c2.2 0 3.32-1.04 3.48-2.32H12.48z"></path></svg>
-        )}
-        Google
-      </Button>
+       <div className="space-y-2">
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
+          {isGoogleLoading ? (
+              <Spinner className="mr-2 h-4 w-4" />
+          ) : (
+              <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.3 1.84-4.32 1.84-5.24 0-9.48-4.24-9.48-9.48s4.24-9.48 9.48-9.48c2.84 0 4.96 1.12 6.56 2.64l-2.32 2.32c-.8-.76-1.84-1.32-3.24-1.32-3.16 0-5.72 2.56-5.72 5.72s2.56 5.72 5.72 5.72c2.2 0 3.32-1.04 3.48-2.32H12.48z"></path></svg>
+          )}
+          Google
+        </Button>
+        <p className="text-xs text-center text-muted-foreground px-4">
+          Requires one-time setup in your Firebase project's Authentication settings.
+        </p>
+      </div>
     </div>
   );
 }
