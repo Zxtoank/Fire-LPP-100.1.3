@@ -4,48 +4,48 @@
 
 @layer base {
   :root {
-    --background: 340 100% 97%; /* Light Purple */
+    --background: 140 70% 96%; /* Light Green */
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 260 83% 63%; /* Purple */
+    --primary: 145 55% 40%; /* Green */
     --primary-foreground: 0 0% 100%;
-    --secondary: 340 80% 94%; /* Light Purple */
+    --secondary: 140 60% 93%; /* Light Green */
     --secondary-foreground: 222 47% 11%;
-    --muted: 340 80% 94%; /* Light Purple */
+    --muted: 140 60% 93%; /* Light Green */
     --muted-foreground: 224 40% 50%;
-    --accent: 260 83% 63%;
+    --accent: 145 55% 40%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 224 32% 91%;
     --input: 224 32% 91%;
-    --ring: 260 83% 63%;
+    --ring: 145 55% 40%;
     --radius: 0.8rem;
   }
  
   .dark {
-    --background: 222 47% 11%;
+    --background: 150 20% 10%;
     --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
+    --card: 150 20% 10%;
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
+    --popover: 150 20% 10%;
     --popover-foreground: 210 40% 98%;
-    --primary: 260 80% 75%; /* Purple for dark mode */
+    --primary: 140 60% 55%; /* Green for dark mode */
     --primary-foreground: 0 0% 98%;
-    --secondary: 217 33% 17%;
+    --secondary: 150 15% 15%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
+    --muted: 150 15% 15%;
     --muted-foreground: 215 20% 65%;
-    --accent: 260 83% 63%; /* A vibrant purple for accents */
-    --accent-foreground: 222 47% 11%;
+    --accent: 140 60% 55%;
+    --accent-foreground: 150 20% 10%;
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 260 80% 75%; /* Purple for dark mode */
+    --border: 150 15% 15%;
+    --input: 150 15% 15%;
+    --ring: 140 60% 55%; /* Green for dark mode */
   }
 }
 
