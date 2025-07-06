@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -37,11 +37,14 @@ export default function OrderDetailsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const orderId = params.orderId as string;
+  const customerId = searchParams.get('userId');
 
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isAdmin = user?.uid === process.env.NEXT_PUBLIC_ADMIN_UID;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -52,8 +55,19 @@ export default function OrderDetailsPage() {
   useEffect(() => {
     if (user && orderId) {
       const fetchOrder = async () => {
+        setIsLoading(true);
+        // Admin can view any order using a customerId from query params.
+        // Regular users can only view their own orders.
+        const targetUid = isAdmin && customerId ? customerId : user.uid;
+
+        if (!targetUid) {
+            setError("Could not determine user for this order.");
+            setIsLoading(false);
+            return;
+        }
+
         try {
-          const orderRef = doc(db, 'users', user.uid, 'orders', orderId);
+          const orderRef = doc(db, 'users', targetUid, 'orders', orderId);
           const orderSnap = await getDoc(orderRef);
           if (orderSnap.exists()) {
             setOrder({ id: orderSnap.id, ...orderSnap.data() } as Order);
@@ -69,7 +83,7 @@ export default function OrderDetailsPage() {
       };
       fetchOrder();
     }
-  }, [user, orderId]);
+  }, [user, orderId, isAdmin, customerId]);
 
   if (isLoading || loading) {
     return (

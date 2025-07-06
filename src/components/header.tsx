@@ -6,13 +6,14 @@ import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { User, LogOut, ChevronLeft, RefreshCw } from 'lucide-react';
+import { User, LogOut, ChevronLeft, RefreshCw, ShieldCheck } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export function Header() {
   const { user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const isAdmin = user?.uid === process.env.NEXT_PUBLIC_ADMIN_UID;
 
   const handleSignOut = async () => {
     try {
@@ -59,6 +60,15 @@ export function Header() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
+              {isAdmin && (
+                <>
+                  <DropdownMenuItem onClick={() => router.push('/admin/orders')}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    <span>View Orders</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem onClick={() => router.push('/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
