@@ -6,12 +6,16 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { ImagePlus, ZoomIn, ZoomOut, RefreshCw, Replace, Square, Circle, Heart, Download, FileText, Package, Star, Lightbulb, Crown, ShoppingCart } from 'lucide-react';
+import { ImagePlus, ZoomIn, ZoomOut, RefreshCw, Replace, Square, Circle, Heart, Download, FileText, Package, Star, Lightbulb, Crown, ShoppingCart, User } from 'lucide-react';
 import { Spinner } from '@/components/spinner';
 import jsPDF from 'jspdf';
 import { useAuth } from '@/hooks/useAuth';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { OnApproveData, OnApproveActions, OrderResponseBody } from "@paypal/paypal-js";
+import { PayPalButtons } from "@paypal/react-paypal-js";
 
 
 const MIN_SCALE = 0.1;
@@ -120,6 +124,7 @@ export default function ImageEditor() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
+  const [isSubmittingPurchase, setIsSubmittingPurchase] = useState<string | null>(null);
 
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -572,18 +577,88 @@ export default function ImageEditor() {
         router.push("/checkout");
     }
   }, [user, router, toast, showPrintLayout]);
+
+  const createDigitalOrder = useCallback(async (description: string) => {
+     try {
+        const response = await fetch('/api/paypal/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: "4.99",
+                description: description,
+                requiresShipping: false
+            })
+        });
+        const order = await response.json();
+        if (response.ok) {
+            return order.id;
+        }
+        const errorData = order.error || 'Failed to create PayPal order.';
+        toast({ variant: "destructive", title: "Error", description: errorData });
+        throw new Error(errorData);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred";
+        toast({ variant: "destructive", title: "Error", description: message });
+        throw error;
+    }
+  }, [toast]);
+
+  const onDigitalApprove = useCallback(async (data: OnApproveData, actions: OnApproveActions, type: 'png' | 'pdf') => {
+    if (!actions.order || !user) {
+      toast({ variant: "destructive", title: "Order Error", description: "An issue occurred. Please try again." });
+      return;
+    }
+
+    setIsSubmittingPurchase(type);
+    toast({ title: "Processing Payment...", description: "Please wait." });
+    
+    try {
+        const details: OrderResponseBody = await actions.order.capture();
+        
+        await addDoc(collection(db, "users", user.uid, "downloads"), {
+            paypalOrderId: details.id,
+            downloadedAt: serverTimestamp(),
+            type: type,
+        });
+        
+        toast({ title: "Purchase Complete!", description: "Your download will begin shortly." });
+        
+        await handleDownload(1200, type);
+
+    } catch (error) {
+        console.error("Order processing error:", error);
+        const message = error instanceof Error ? error.message : "There was an issue processing your purchase.";
+        toast({ variant: "destructive", title: "Purchase Error", description: message });
+    } finally {
+        setIsSubmittingPurchase(null);
+    }
+  }, [user, toast, handleDownload]);
   
   const PayPalPurchaseButtons = ({type}: {type: 'png' | 'pdf'}) => {
-    if(!isClient) return null;
+    if (!user) {
+        return (
+             <div className="space-y-2 pt-2">
+                <Button className="w-full" onClick={() => router.push('/login')}>
+                    <User className="mr-2"/> Login to Purchase
+                </Button>
+            </div>
+        )
+    }
+
+    const description = `Locket Photo 1200DPI ${type.toUpperCase()}`;
 
     return (
       <div className="space-y-2 pt-2">
-        <Button disabled className="w-full">
-            <PayPalIcon/> <span className="ml-2">Purchase via PayPal</span>
-        </Button>
-        <p className="text-xs text-muted-foreground text-center px-2">
-            To comply with app store policies, digital purchases are only available on our website.
-        </p>
+          {isSubmittingPurchase === type ? (
+              <div className="flex items-center justify-center h-10"><Spinner /><p className="ml-2 text-sm">Processing...</p></div>
+          ) : (
+            <PayPalButtons
+                style={{ layout: "vertical", label: 'pay', height: 40 }}
+                createOrder={() => createDigitalOrder(description)}
+                onApprove={(data, actions) => onDigitalApprove(data, actions, type)}
+                disabled={!!isSubmittingPurchase}
+            />
+          )}
       </div>
     );
   }
@@ -770,9 +845,6 @@ export default function ImageEditor() {
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
-                                            <Button variant="ghost" size="icon" disabled>
-                                                <Download className="text-yellow-500"/>
-                                            </Button>
                                           </div>
                                           <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
                                               <Crown className="w-4 h-4" />
@@ -792,9 +864,6 @@ export default function ImageEditor() {
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
-                                            <Button variant="ghost" size="icon" disabled>
-                                                <Download className="text-yellow-500"/>
-                                            </Button>
                                           </div>
                                           <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
                                               <Crown className="w-4 h-4" />
@@ -807,20 +876,52 @@ export default function ImageEditor() {
 
                               {/* PAID DOWNLOADS - MOBILE ONLY PLACEHOLDER */}
                               {isClient && isMobile && (
-                                <Card className="sm:col-span-2 p-4 border-yellow-200 border bg-yellow-50/50 relative">
-                                    <div className="flex items-center gap-3">
-                                        <FileText className="text-yellow-500 w-5 h-5 mt-1 flex-shrink-0" />
-                                        <div>
-                                            <h4 className="font-semibold">Ultra-High Resolution Downloads</h4>
-                                            <p className="text-sm text-muted-foreground mt-1">
-                                                To comply with store policies, 1200DPI downloads are available exclusively on our website.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
-                                        <Crown className="w-4 h-4" />
-                                    </div>
-                                </Card>
+                                <>
+                                  <Card className="p-4 border-yellow-200 border bg-yellow-50/50 relative space-y-3">
+                                      <div className="flex items-start justify-between">
+                                          <div className="flex items-center gap-3">
+                                            <FileText className="text-yellow-500 w-5 h-5" />
+                                              <div>
+                                                  <h4 className="font-semibold">1200DPI PNG</h4>
+                                                  <p className="text-sm text-muted-foreground mt-1">Ultra-high resolution</p>
+                                              </div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
+                                          </div>
+                                          <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
+                                              <Crown className="w-4 h-4" />
+                                          </div>
+                                      </div>
+                                      <div className="space-y-2 pt-2">
+                                          <Button disabled className="w-full">
+                                              Coming Soon
+                                          </Button>
+                                      </div>
+                                  </Card>
+                                  <Card className="p-4 border-yellow-200 border bg-yellow-50/50 relative space-y-3">
+                                      <div className="flex items-start justify-between">
+                                          <div className="flex items-center gap-3">
+                                              <FileText className="text-yellow-500 w-5 h-5" />
+                                              <div>
+                                                  <h4 className="font-semibold">1200DPI PDF</h4>
+                                                  <p className="text-sm text-muted-foreground mt-1">Professional print quality</p>
+                                              </div>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
+                                          </div>
+                                          <div className="absolute -top-3 -right-3 text-xs font-bold text-orange-900 w-7 h-7 flex items-center justify-center rounded-full border-2 border-white shadow-lg bg-gradient-to-tr from-yellow-400 to-orange-400">
+                                              <Crown className="w-4 h-4" />
+                                          </div>
+                                      </div>
+                                      <div className="space-y-2 pt-2">
+                                          <Button disabled className="w-full">
+                                              Coming Soon
+                                          </Button>
+                                      </div>
+                                  </Card>
+                                </>
                               )}
 
                           </div>
