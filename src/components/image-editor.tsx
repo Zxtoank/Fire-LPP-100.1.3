@@ -530,38 +530,64 @@ export default function ImageEditor() {
 
     try {
         const canvas = await generateDownloadableCanvas(dpi);
-        let fileBlob: Blob | null = null;
-        let fileExtension: string;
+        const fileName = `locket-photo-print-${dpi}dpi.${format}`;
+        
+        // This is the interface to the native Android app.
+        // It will only exist when running inside the Android WebView.
+        const androidBridge = (window as any).AndroidBridge;
 
-        if (format === 'pdf') {
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
-            fileBlob = pdf.output('blob');
-            fileExtension = 'pdf';
+        if (androidBridge && typeof androidBridge.saveFile === 'function') {
+            // Native Android App (WebView) Path
+            let base64Data: string;
+            let mimeType: string;
+
+            if (format === 'pdf') {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
+                // Get Base64 content without the 'data:application/pdf;base64,' prefix
+                base64Data = pdf.output('datauristring').split(',')[1];
+                mimeType = 'application/pdf';
+            } else {
+                // Get Base64 content without the 'data:image/png;base64,' prefix
+                base64Data = canvas.toDataURL('image/png').split(',')[1];
+                mimeType = 'image/png';
+            }
+            
+            androidBridge.saveFile(base64Data, fileName, mimeType);
+            toast({ title: "Download Started", description: "Check your device's notifications." });
+
         } else {
-            fileBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            fileExtension = 'png';
-        }
-        
-        if (!fileBlob) {
-            throw new Error('Failed to generate file for download.');
-        }
+            // Standard Web Browser Path
+            let fileBlob: Blob | null = null;
+            if (format === 'pdf') {
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
+                fileBlob = pdf.output('blob');
+            } else {
+                fileBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            }
 
-        const url = URL.createObjectURL(fileBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `locket-photo-print-${dpi}dpi.${fileExtension}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        toast({ title: "Success", description: "Download started." });
+            if (!fileBlob) {
+                throw new Error('Failed to generate file for download.');
+            }
+
+            const url = URL.createObjectURL(fileBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast({ title: "Download Complete!", description: `Started downloading ${fileName}` });
+        }
 
     } catch (error) {
         console.error(`${format.toUpperCase()} Download Error:`, error);
-        toast({ variant: "destructive", title: "Error", description: `Failed to generate ${format.toUpperCase()} file.` });
+        const message = error instanceof Error ? error.message : `Failed to generate ${format.toUpperCase()} file.`;
+        toast({ variant: "destructive", title: "Download Error", description: message });
     } finally {
         setDownloadingType(null);
     }
