@@ -13,7 +13,6 @@ import type { OnApproveData, OnApproveActions, OrderResponseBody } from "@paypal
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { PayPalButtons } from '@paypal/react-paypal-js';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
@@ -519,132 +518,44 @@ export default function ImageEditor() {
     });
   }, [image, cropShape, getSourceRect]);
 
-  const handleDownloadPNG = useCallback(async (dpi: number) => {
-    const type = `png${dpi}`;
+  const handleDownload = useCallback(async (dpi: number, format: 'png' | 'pdf') => {
+    const type = `${format}${dpi}`;
     if (downloadingType) return;
     setDownloadingType(type);
-    toast({ title: "Preparing Download", description: `Generating ${dpi} DPI PNG... Please wait.` });
+    toast({ title: "Preparing Download", description: `Generating ${dpi} DPI ${format.toUpperCase()}... Please wait.` });
 
     try {
         const canvas = await generateDownloadableCanvas(dpi);
-        const dataUrl = canvas.toDataURL('image/png');
+        let dataUrl: string;
+        let fileExtension: string;
+
+        if (format === 'pdf') {
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
+            dataUrl = pdf.output('datauristring');
+            fileExtension = 'pdf';
+        } else {
+            dataUrl = canvas.toDataURL('image/png');
+            fileExtension = 'png';
+        }
         
         const a = document.createElement('a');
         a.href = dataUrl;
-        a.download = `locket-photo-print-${dpi}dpi.png`;
+        a.download = `locket-photo-print-${dpi}dpi.${fileExtension}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         
-        toast({ title: "Success", description: "PNG download started." });
+        toast({ title: "Success", description: "Download started." });
 
     } catch (error) {
-        console.error("PNG Download Error:", error);
-        toast({ variant: "destructive", title: "Error", description: "Failed to generate PNG file." });
+        console.error(`${format.toUpperCase()} Download Error:`, error);
+        toast({ variant: "destructive", title: "Error", description: `Failed to generate ${format.toUpperCase()} file.` });
     } finally {
         setDownloadingType(null);
     }
   }, [downloadingType, generateDownloadableCanvas, toast]);
-
-  const handleDownloadPDF = useCallback(async (dpi: number) => {
-    const type = `pdf${dpi}`;
-    if (downloadingType) return;
-    setDownloadingType(type);
-    toast({ title: "Preparing Download", description: `Generating ${dpi} DPI PDF... Please wait.` });
-
-    try {
-        const canvas = await generateDownloadableCanvas(dpi);
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
-        pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
-        
-        const dataUri = pdf.output('datauristring');
-        const a = document.createElement('a');
-        a.href = dataUri;
-        a.download = `locket-photo-print-${dpi}dpi.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        toast({ title: "Success", description: "PDF download started." });
-    } catch (error) {
-        console.error("PDF Download Error:", error);
-        toast({ variant: "destructive", title: "Error", description: "Failed to generate PDF file." });
-    } finally {
-        setDownloadingType(null);
-    }
-  }, [downloadingType, generateDownloadableCanvas, toast]);
-  
-  const createOrder = useCallback(async (amount: string, description: string, requiresShipping = false) => {
-     try {
-        if (!user) {
-            toast({ variant: "destructive", title: "Please Log In", description: "You need to be logged in to make a purchase." });
-            router.push('/login');
-            throw new Error("User not logged in");
-        }
-        
-        const response = await fetch('/api/paypal/create-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ amount, description, requiresShipping })
-        });
-        const orderData = await response.json();
-        if (response.ok) {
-            return orderData.id;
-        }
-        const errorMsg = orderData.error || 'Failed to create PayPal order.';
-        toast({ variant: "destructive", title: "Error Creating Order", description: errorMsg });
-        throw new Error(errorMsg);
-    } catch (error) {
-        if (error instanceof Error && !error.message.includes('User not logged in') && !error.message.includes('PayPal')) {
-            const message = error instanceof Error ? error.message : "An unknown network error occurred";
-            toast({ variant: "destructive", title: "Error", description: message });
-        }
-        throw error;
-    }
-  }, [user, toast, router]);
-
-  const onApprove = useCallback(async (data: OnApproveData, actions: OnApproveActions, purchaseType: 'png' | 'pdf') => {
-    if (!actions.order || !user) {
-        toast({ variant: "destructive", title: "Error", description: "PayPal actions are not available or user not logged in." });
-        throw new Error("PayPal actions not available or user not logged in");
-    }
-    try {
-        const details: OrderResponseBody = await actions.order.capture();
-        
-        await addDoc(collection(db, "users", user.uid, "downloads"), {
-            paypalOrderId: details.id,
-            downloadedAt: serverTimestamp(),
-            type: `${purchaseType}-1200dpi`,
-        });
-
-        toast({ title: "Payment Successful!", description: `Thank you, ${details.payer.name.given_name}. Your download will begin shortly.` });
-        
-        if (purchaseType === 'png') {
-            await handleDownloadPNG(1200);
-        } else {
-            await handleDownloadPDF(1200);
-        }
-    } catch (error) {
-        console.error("PayPal Capture Error:", error);
-        const message = error instanceof Error ? error.message : "There was an issue processing your payment. Please try again."
-        toast({ variant: "destructive", title: "Payment Error", description: message });
-        throw error;
-    }
-  }, [user, toast, handleDownloadPNG, handleDownloadPDF]);
-
-  const onCancel = useCallback(() => {
-    toast({
-      variant: "default",
-      title: "Payment Cancelled",
-      description: "You have cancelled the payment process.",
-    });
-  }, [toast]);
-
-  const onError = useCallback((err: any) => {
-    console.error("PayPal Error:", err);
-    toast({ variant: "destructive", title: "PayPal Error", description: "A PayPal script error occurred. This is often due to an incorrect Client ID. Please double-check your credentials." });
-  }, [toast]);
   
   const handleOrderPhysicalClick = useCallback(() => {
     if (!user) {
@@ -657,34 +568,18 @@ export default function ImageEditor() {
     }
   }, [user, router, toast, showPrintLayout]);
   
-  const handleFeatureClick = (featureName: string) => {
-     toast({
-      variant: "default",
-      title: "Coming Soon!",
-      description: `${featureName} functionality is not yet implemented.`,
-    });
-  }
-
   const PayPalPurchaseButtons = ({type}: {type: 'png' | 'pdf'}) => {
-    const createDigitalOrder = useCallback(() => {
-        return createOrder('4.99', `Locket Photo Print Pro Download (1200DPI ${type.toUpperCase()})`);
-    }, [type]);
-
-    const onDigitalApprove = useCallback((data: OnApproveData, actions: OnApproveActions) => {
-        return onApprove(data, actions, type);
-    }, [type, onApprove]);
-    
     if(!isClient) return null;
 
     return (
-        <PayPalButtons
-            style={{ layout: "horizontal", height: 40, tagline: false, shape: 'pill' }}
-            createOrder={createDigitalOrder}
-            onApprove={onDigitalApprove}
-            onCancel={onCancel}
-            onError={onError}
-            disabled={!!downloadingType || !user}
-        />
+      <div className="space-y-2 pt-2">
+        <Button disabled className="w-full">
+            <PayPalIcon/> <span className="ml-2">Purchase via PayPal</span>
+        </Button>
+        <p className="text-xs text-muted-foreground text-center px-2">
+            To comply with app store policies, digital purchases are only available on our website.
+        </p>
+      </div>
     );
   }
 
@@ -834,7 +729,7 @@ export default function ImageEditor() {
                                               <p className="text-sm text-muted-foreground mt-1">High quality for home printing</p>
                                           </div>
                                       </div>
-                                      <Button variant="ghost" size="icon" onClick={() => handleDownloadPNG(600)} disabled={!!downloadingType}>
+                                      <Button variant="ghost" size="icon" onClick={() => handleDownload(600, 'png')} disabled={!!downloadingType}>
                                           {downloadingType === 'png600' ? <Spinner /> : <Download />}
                                       </Button>
                                   </div>
@@ -849,7 +744,7 @@ export default function ImageEditor() {
                                               <p className="text-sm text-muted-foreground mt-1">Perfect for professional printing</p>
                                           </div>
                                       </div>
-                                      <Button variant="ghost" size="icon" onClick={() => handleDownloadPDF(600)} disabled={!!downloadingType}>
+                                      <Button variant="ghost" size="icon" onClick={() => handleDownload(600, 'pdf')} disabled={!!downloadingType}>
                                           {downloadingType === 'pdf600' ? <Spinner /> : <Download />}
                                       </Button>
                                   </div>
@@ -866,7 +761,7 @@ export default function ImageEditor() {
                                       </div>
                                       <div className="flex items-center gap-2">
                                         <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
-                                        <Button variant="ghost" size="icon" onClick={() => toast({description: "Please use the PayPal button below to purchase."})}>
+                                        <Button variant="ghost" size="icon" disabled>
                                             <Download className="text-yellow-500"/>
                                         </Button>
                                       </div>
@@ -874,12 +769,7 @@ export default function ImageEditor() {
                                           <Crown className="w-4 h-4" />
                                       </div>
                                   </div>
-                                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <PayPalIcon /> One-time purchase via PayPal
-                                  </p>
-                                  <div className="pt-2">
-                                      <PayPalPurchaseButtons type="png" />
-                                  </div>
+                                  <PayPalPurchaseButtons type="png" />
                               </Card>
                               {/* 1200DPI PDF */}
                               <Card className="p-4 border-yellow-200 border bg-yellow-50/50 relative space-y-3">
@@ -893,7 +783,7 @@ export default function ImageEditor() {
                                       </div>
                                        <div className="flex items-center gap-2">
                                         <span className="text-sm font-bold bg-yellow-200/70 text-yellow-900 px-2 py-0.5 rounded-full">$4.99</span>
-                                        <Button variant="ghost" size="icon" onClick={() => toast({description: "Please use the PayPal button below to purchase."})}>
+                                        <Button variant="ghost" size="icon" disabled>
                                             <Download className="text-yellow-500"/>
                                         </Button>
                                       </div>
@@ -901,12 +791,7 @@ export default function ImageEditor() {
                                           <Crown className="w-4 h-4" />
                                       </div>
                                   </div>
-                                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <PayPalIcon /> One-time purchase via PayPal
-                                  </p>
-                                  <div className="pt-2">
-                                      <PayPalPurchaseButtons type="pdf" />
-                                  </div>
+                                  <PayPalPurchaseButtons type="pdf" />
                               </Card>
                           </div>
                       </div>
@@ -949,7 +834,7 @@ export default function ImageEditor() {
                               </div>
                               <div className="text-center md:text-right flex-shrink-0">
                                   <p className="text-3xl font-bold text-purple-700">$9.99<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-                                  <Button className="mt-2 bg-violet-500 hover:bg-violet-600 text-white" size="lg" onClick={() => handleFeatureClick('Premium Plans')}>
+                                  <Button className="mt-2 bg-violet-500 hover:bg-violet-600 text-white" size="lg" disabled>
                                       <Star className="mr-2"/> View Plans
                                   </Button>
                               </div>

@@ -3,6 +3,9 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/AuthContext';
 import './globals.css';
 import { Belleza, Alegreya } from 'next/font/google';
+import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
+
 
 const belleza = Belleza({
   subsets: ['latin'],
@@ -33,12 +36,14 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <meta name="theme-color" content="#2E994B" />
+        <meta name="theme-color" content="#94D8A9" />
       </head>
-      <body className={`${belleza.variable} ${alegreya.variable} font-serif antialiased`}>
+      <body className={`${belleza.variable} ${alegreya.variable} font-serif antialiased flex flex-col min-h-screen bg-background`}>
         <AuthProvider>
-          {children}
-          <Toaster />
+            <Header />
+            {children}
+            <Footer />
+            <Toaster />
         </AuthProvider>
       </body>
     </html>

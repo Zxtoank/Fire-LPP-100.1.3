@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Spinner } from "@/components/spinner";
@@ -181,8 +180,6 @@ export default function CheckoutPage() {
   
   if (!PAYPAL_CLIENT_ID) {
     return (
-      <div className="flex flex-col min-h-screen bg-background">
-        <Header />
         <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
             <Card>
                 <CardHeader>
@@ -193,13 +190,10 @@ export default function CheckoutPage() {
                 </CardContent>
             </Card>
         </main>
-      </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
         <h1 className="text-3xl sm:text-4xl font-bold text-primary text-center mb-8">Checkout</h1>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -341,6 +335,5 @@ export default function CheckoutPage() {
             </div>
         </div>
       </main>
-    </div>
   );
 }

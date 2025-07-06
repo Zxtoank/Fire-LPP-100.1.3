@@ -6,7 +6,7 @@ import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { User, LogOut, ChevronLeft } from 'lucide-react';
+import { User, LogOut, ChevronLeft, RefreshCw } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export function Header() {
@@ -21,6 +21,10 @@ export function Header() {
     } catch (error) {
         console.error("Error signing out: ", error);
     }
+  };
+  
+  const handleRefresh = () => {
+    router.refresh();
   };
 
   return (
@@ -40,6 +44,10 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
+        <Button variant="ghost" size="icon" onClick={handleRefresh} className="h-10 w-10 shrink-0 md:hidden">
+            <RefreshCw className="h-5 w-5" />
+            <span className="sr-only">Refresh</span>
+        </Button>
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

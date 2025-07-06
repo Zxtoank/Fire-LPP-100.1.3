@@ -1,7 +1,6 @@
 "use client";
 import { AuthForm } from "@/components/auth-form";
 import Link from 'next/link';
-import { Header } from '@/components/header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SignUpPage() {
@@ -9,8 +8,6 @@ export default function SignUpPage() {
 
   if (!firebaseApiKey || firebaseApiKey === 'YOUR_API_KEY_HERE') {
     return (
-      <div className="flex flex-col min-h-screen bg-background">
-        <Header />
         <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
             <Card className="w-full max-w-lg shadow-lg">
                 <CardHeader>
@@ -28,13 +25,10 @@ export default function SignUpPage() {
                 </CardContent>
             </Card>
         </main>
-      </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-        <Header/>
         <main className="flex-grow flex items-center justify-center p-4">
             <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg border">
                 <div className="text-center">
@@ -52,6 +46,5 @@ export default function SignUpPage() {
                 </p>
             </div>
         </main>
-    </div>
   );
 }

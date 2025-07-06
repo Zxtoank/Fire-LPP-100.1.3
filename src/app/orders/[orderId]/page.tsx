@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { Header } from '@/components/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Spinner } from '@/components/spinner';
 import { format } from 'date-fns';
@@ -82,31 +81,23 @@ export default function OrderDetailsPage() {
   
   if (error) {
      return (
-       <div className="flex flex-col min-h-screen bg-background">
-        <Header />
         <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
             <p className="text-red-500">{error}</p>
         </main>
-       </div>
     );
   }
 
   if (!order) {
     return (
-       <div className="flex flex-col min-h-screen bg-background">
-        <Header />
-        <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
+       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
             <p className="text-muted-foreground">Order not found.</p>
-        </main>
-       </div>
+       </main>
     )
   }
 
   const currentStatusIndex = statusSteps.findIndex(step => step.id === order.status);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
         <Card className="shadow-lg">
           <CardHeader>
@@ -167,6 +158,5 @@ export default function OrderDetailsPage() {
           </CardContent>
         </Card>
       </main>
-    </div>
   );
 }

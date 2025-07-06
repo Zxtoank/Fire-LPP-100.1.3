@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import { collection, query, getDocs, orderBy } from "firebase/firestore";
-import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/spinner";
@@ -72,8 +71,6 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <Header />
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
         <div className="space-y-8">
           <div className="text-center">
@@ -134,6 +131,5 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
-    </div>
   );
 }
