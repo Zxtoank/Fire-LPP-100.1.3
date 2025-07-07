@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -5,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { auth } from "@/lib/firebase";
-import { sendSignInLinkToEmail } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -18,74 +19,86 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useRouter } from "next/navigation";
 
-const emailSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }),
+const signUpSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email." }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
 });
 
-export function AuthForm() {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+const signInSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email." }),
+  password: z.string().min(1, { message: "Password is required." }),
+});
 
-  const form = useForm<z.infer<typeof emailSchema>>({
-    resolver: zodResolver(emailSchema),
-    defaultValues: { email: "" },
+type AuthFormProps = {
+  mode: 'signin' | 'signup';
+};
+
+export function AuthForm({ mode }: AuthFormProps) {
+  const { toast } = useToast();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const schema = mode === 'signup' ? signUpSchema : signInSchema;
+
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      email: "",
+      password: "",
+      ...(mode === 'signup' && { confirmPassword: "" }),
+    },
   });
 
-  const onSubmit = async (data: z.infer<typeof emailSchema>) => {
+  const onSubmit = async (data: z.infer<typeof schema>) => {
     if (!auth) {
         toast({ variant: "destructive", title: "Authentication Error", description: "Firebase is not configured." });
         return;
     }
     setIsLoading(true);
-    setIsSubmitted(false);
+    
     try {
-      const actionCodeSettings = {
-        // Use the current URL to redirect back to. The domain must be
-        // authorized in the Firebase console.
-        url: window.location.href,
-        handleCodeInApp: true,
-      };
-
-      await sendSignInLinkToEmail(auth, data.email, actionCodeSettings);
-      
-      // Save the email locally so you don't need to ask the user for it again
-      // if they open the link on the same device.
-      window.localStorage.setItem('emailForSignIn', data.email);
-      
-      toast({
-        title: "Check Your Email",
-        description: `A sign-in link has been sent to ${data.email}.`,
-      });
-      setIsSubmitted(true);
-      form.reset();
-
+        if (mode === 'signup') {
+            await createUserWithEmailAndPassword(auth, data.email, data.password);
+            toast({ title: "Account Created!", description: "You have successfully signed up. Welcome!" });
+        } else {
+            await signInWithEmailAndPassword(auth, data.email, data.password);
+            toast({ title: "Signed In", description: "Welcome back!" });
+        }
+        router.push('/');
     } catch (error: any) {
-      if (error.code === 'auth/unauthorized-domain') {
-        console.error("Firebase Auth Error: The domain is not allowlisted.", error);
-        toast({
-          variant: "destructive",
-          title: "Domain Not Allowlisted",
-          description: "This app's domain is not authorized. Please check two things: 1) The domain is in your Firebase project's 'Authorized domains' list. 2) The 'authDomain' in your .env file matches the project you're editing.",
-          duration: 9000,
-        });
-      } else {
-        toast({ variant: "destructive", title: "Error", description: error.message });
-      }
+        let description = "An unexpected error occurred. Please try again.";
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                description = 'This email address is already in use by another account.';
+                break;
+            case 'auth/invalid-email':
+                description = 'The email address is not valid.';
+                break;
+            case 'auth/operation-not-allowed':
+                description = 'Email/password accounts are not enabled. Please contact support.';
+                break;
+            case 'auth/weak-password':
+                description = 'The password is too weak.';
+                break;
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+                description = 'Invalid email or password. Please try again.';
+                break;
+            default:
+                console.error("Firebase Auth Error:", error);
+        }
+        toast({ variant: "destructive", title: "Authentication Error", description });
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
-  
-  if (isSubmitted) {
-    return (
-        <div className="text-center p-4 bg-primary/10 rounded-md border-primary/20">
-            <h3 className="font-semibold text-primary">Email Sent!</h3>
-            <p className="text-sm text-muted-foreground mt-1">Please check your inbox and click the link to sign in.</p>
-        </div>
-    )
-  }
 
   return (
     <Form {...form}>
@@ -103,9 +116,37 @@ export function AuthForm() {
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input type="password" placeholder="••••••••" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        {mode === 'signup' && (
+            <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        )}
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Spinner className="mr-2 h-4 w-4" />}
-          Send Sign-in Link
+          {mode === 'signup' ? 'Create Account' : 'Sign In'}
         </Button>
       </form>
     </Form>

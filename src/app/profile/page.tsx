@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/spinner";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Download, Package } from "lucide-react";
+import { Download, Package, UserPlus } from "lucide-react";
 
 interface DownloadRecord {
   id: string;
@@ -39,7 +40,7 @@ export default function ProfilePage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user) {
+    if (user && !user.isAnonymous) {
       const fetchData = async () => {
         setIsDataLoading(true);
         try {
@@ -59,6 +60,8 @@ export default function ProfilePage() {
         }
       };
       fetchData();
+    } else {
+        setIsDataLoading(false);
     }
   }, [user]);
 
@@ -69,6 +72,27 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  if (user.isAnonymous) {
+    return (
+        <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8 flex items-center justify-center">
+            <Card className="w-full max-w-md text-center shadow-lg">
+                <CardHeader>
+                    <CardTitle>You're a Guest!</CardTitle>
+                    <CardDescription>Your work isn't saved to an account.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-muted-foreground">Create an account to save your orders, downloads, and profile information for future visits.</p>
+                    <Button onClick={() => router.push('/login')}>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Sign Up or Log In
+                    </Button>
+                </CardContent>
+            </Card>
+        </main>
+    );
+  }
+
 
   return (
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
