@@ -18,7 +18,7 @@ import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-const PHYSICAL_PRINT_PRICE = "7.99";
+const PHYSICAL_PRINT_PRICE = "12.99";
 
 const shippingAddressSchema = z.object({
   name: z.string().min(2, { message: "A full name is required." }),

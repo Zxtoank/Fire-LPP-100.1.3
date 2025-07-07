@@ -963,7 +963,7 @@ export default function ImageEditor() {
                                   </ul>
                               </div>
                               <div className="text-center md:text-right flex-shrink-0">
-                                  <p className="text-3xl font-bold text-green-700">$7.99</p>
+                                  <p className="text-3xl font-bold text-green-700">$12.99</p>
                                   <p className="text-sm text-muted-foreground">per print</p>
                                   <Button className="mt-4 bg-emerald-500 hover:bg-emerald-600 text-white" size="lg" onClick={handleOrderPhysicalClick} disabled={!user}>
                                       <Package className="mr-2"/> Order Physical Prints
