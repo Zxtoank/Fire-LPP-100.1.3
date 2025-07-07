@@ -21,19 +21,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // First, try to process any pending redirect result. This is crucial for when
-    // the app is reopened by the Google Sign-In flow from an external browser.
-    getRedirectResult(auth)
-      .then((result) => {
-        // If 'result' is not null, a sign-in via redirect has just completed.
-        // The onAuthStateChanged listener below will be triggered with the new user.
-        // We can toast a welcome message.
+    // This function will be unsubscribed on component unmount.
+    // We define it here so it's available in the cleanup function.
+    let unsubscribe = () => {};
+
+    const checkRedirectResultAndSetListener = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        // If a redirect was just completed, the result object will not be null.
         if (result) {
-            toast({ title: "Welcome!", description: `Signed in as ${result.user.displayName || result.user.email}` });
+          toast({ title: "Welcome!", description: `Signed in as ${result.user.displayName || result.user.email}` });
         }
-      })
-      .catch((error) => {
-        // Handle any errors that occurred during the redirect.
+      } catch (error: any) {
         console.error("Google Sign-In Error from getRedirectResult:", error);
         let description = "An unknown error occurred during sign-in.";
         if (error.code) {
@@ -50,15 +49,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
         toast({ variant: "destructive", title: "Sign-In Failed", description });
-      });
-
-    // Set up the primary listener that will react to all auth state changes.
-    // This is the single source of truth for the user's auth state.
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      // Once we get the first update (either a user or null), we can stop loading.
-      setLoading(false);
-    });
+      } finally {
+        // After awaiting the redirect result (or if it failed), we set up the listener.
+        // This is now the definitive source of truth for the user's auth state.
+        // It will fire once immediately with the current state.
+        unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+          setUser(currentUser);
+          setLoading(false); // Stop loading after we get the first auth state.
+        });
+      }
+    };
+    
+    checkRedirectResultAndSetListener();
 
     // The cleanup function for useEffect will run when the component unmounts.
     return () => unsubscribe();
