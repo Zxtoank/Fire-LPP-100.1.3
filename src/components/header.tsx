@@ -1,3 +1,4 @@
+
 "use client";
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,7 +7,7 @@ import { signOut } from 'firebase/auth';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { User, LogOut, ChevronLeft, RefreshCw, ShieldCheck } from 'lucide-react';
+import { User, LogOut, ChevronLeft, RefreshCw, ShieldCheck, LogIn } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export function Header() {
@@ -17,7 +18,9 @@ export function Header() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      if (auth) {
+        await signOut(auth);
+      }
       router.push('/');
     } catch (error) {
         console.error("Error signing out: ", error);
@@ -87,10 +90,10 @@ export function Header() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => router.push('/login')} className="px-3 sm:px-4">Log In</Button>
-            <Button onClick={() => router.push('/signup')} className="px-3 sm:px-4">Sign Up</Button>
-          </div>
+          <Button onClick={() => router.push('/login')}>
+            <LogIn className="mr-2 h-4 w-4" />
+            Login / Sign Up
+          </Button>
         )}
       </div>
     </header>
