@@ -1,4 +1,3 @@
-
 package com.customory.lpp
 
 import android.annotation.SuppressLint
@@ -18,10 +17,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
-import com.customory.lpp.ui.theme.LppTheme
 import java.io.File
 import java.io.FileOutputStream
 
@@ -29,43 +29,36 @@ class MainActivity : ComponentActivity() {
 
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
+    // This launcher handles the result from the file chooser intent.
     private val fileChooserLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null) {
-            val data = result.data?.data
-            data?.let {
-                filePathCallback?.onReceiveValue(arrayOf(it))
-            } ?: filePathCallback?.onReceiveValue(null)
+            filePathCallback?.onReceiveValue(arrayOf(result.data!!.data!!))
         } else {
             filePathCallback?.onReceiveValue(null)
         }
         filePathCallback = null
     }
 
-    // JavaScriptBridge class added inside MainActivity
+    // This class provides a bridge for JavaScript running in the WebView to call native Android code.
     inner class JavaScriptBridge(private val context: Context) {
-
         @JavascriptInterface
         fun saveFile(base64Data: String, fileName: String, mimeType: String) {
             try {
                 val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                if (!downloadsDir.exists()) {
-                    downloadsDir.mkdirs()
-                }
+                if (!downloadsDir.exists()) downloadsDir.mkdirs()
 
                 val file = File(downloadsDir, fileName)
                 val data = Base64.decode(base64Data, Base64.DEFAULT)
-                val fos = FileOutputStream(file)
-                fos.write(data)
-                fos.flush()
-                fos.close()
+                FileOutputStream(file).use { it.write(data) }
 
-                MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), null, null)
+                // Notify the system that a new file is available for indexing.
+                MediaScannerConnection.scanFile(context, arrayOf(file.absolutePath), arrayOf(mimeType), null)
 
                 runOnUiThread {
                     Toast.makeText(context, "Download complete: $fileName", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                Log.e("WebViewDownload", "Error saving file: ${e.message}")
+                Log.e("WebViewDownload", "Error saving file: ${e.message}", e)
                 runOnUiThread {
                     Toast.makeText(context, "Download failed.", Toast.LENGTH_SHORT).show()
                 }
@@ -73,20 +66,25 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            LppTheme {
-                WebPageViewer(
-                    url = "https://locket.customory.com/",
-                    onShowFileChooser = { filePath, fileChooserIntent ->
-                        filePathCallback = filePath
-                        fileChooserLauncher.launch(fileChooserIntent)
-                    },
-                    bridge = JavaScriptBridge(this) // Pass the bridge instance
-                )
+            MaterialTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    // ** IMPORTANT **
+                    // Replace this with your actual live Netlify URL once deployed.
+                    val liveUrl = "https://your-app-name.netlify.app"
+
+                    WebPageViewer(
+                        url = liveUrl,
+                        onShowFileChooser = { filePath, fileChooserIntent ->
+                            filePathCallback = filePath
+                            fileChooserLauncher.launch(fileChooserIntent)
+                        },
+                        bridge = JavaScriptBridge(this)
+                    )
+                }
             }
         }
     }
@@ -102,44 +100,33 @@ fun WebPageViewer(
     AndroidView(
         factory = { context ->
             WebView(context).apply {
-                // Keep all navigation inside the WebView. This is simpler now
-                // that we don't need a browser redirect for Google Sign-In.
+                // Keep navigation inside the WebView
                 webViewClient = WebViewClient()
 
-                // Set Download Listener to prevent default browser download
-                setDownloadListener { downloadUrl, _, _, _, _ ->
-                    Log.d("WebViewDownload", "Download intercepted for URL: $downloadUrl. Handled by bridge.")
+                // Set a custom download listener to pass downloads to the JavaScript bridge.
+                setDownloadListener { _, _, _, _, _ ->
+                     // Intercepts the download and expects the JS bridge to handle it.
                 }
 
-                // Handle file uploads
+                // Handle file uploads from the WebView.
                 webChromeClient = object : WebChromeClient() {
                     override fun onShowFileChooser(
-                        webView: WebView?,
+                        webView: WebView,
                         filePathCallback: ValueCallback<Array<Uri>>,
                         fileChooserParams: FileChooserParams
                     ): Boolean {
-                        return try {
-                            val intent = fileChooserParams.createIntent()
-                            onShowFileChooser(filePathCallback, intent)
-                            true
-                        } catch (e: Exception) {
-                            Log.e("FileChooser", "File chooser failed", e)
-                            filePathCallback.onReceiveValue(null)
-                            false
-                        }
+                        val intent = fileChooserParams.createIntent()
+                        onShowFileChooser(filePathCallback, intent)
+                        return true
                     }
                 }
 
-                // Enable JavaScript bridge
                 addJavascriptInterface(bridge, "AndroidBridge")
 
-                // Enable required settings
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
                     allowFileAccess = true
-                    allowContentAccess = true
-                    cacheMode = WebSettings.LOAD_DEFAULT
                 }
 
                 loadUrl(url)
