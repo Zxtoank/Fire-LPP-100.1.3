@@ -4,14 +4,27 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { db } from "@/lib/firebase";
-import { collection, query, getDocs, orderBy } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { collection, query, getDocs, orderBy, writeBatch } from "firebase/firestore";
+import { deleteUser } from "firebase/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/spinner";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Download, Package, UserPlus } from "lucide-react";
+import { Download, Package, UserPlus, Trash2, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface DownloadRecord {
   id: string;
@@ -29,9 +42,11 @@ interface OrderRecord {
 export default function ProfilePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [downloads, setDownloads] = useState<DownloadRecord[]>([]);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -65,6 +80,46 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+
+    setIsDeleting(true);
+    toast({ title: "Deleting Account", description: "This may take a moment. Please wait..." });
+
+    try {
+      // Create a batch to delete all documents atomically.
+      const batch = writeBatch(db);
+
+      // Delete all documents in the 'downloads' subcollection.
+      const downloadsQuery = query(collection(db, "users", user.uid, "downloads"));
+      const downloadsSnapshot = await getDocs(downloadsQuery);
+      downloadsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+      // Delete all documents in the 'orders' subcollection.
+      const ordersQuery = query(collection(db, "users", user.uid, "orders"));
+      const ordersSnapshot = await getDocs(ordersQuery);
+      ordersSnapshot.forEach(doc => batch.delete(doc.ref));
+
+      // Commit the batch to delete all Firestore data.
+      await batch.commit();
+
+      // Finally, delete the user from Firebase Authentication.
+      await deleteUser(user);
+
+      toast({ title: "Account Deleted", description: "Your account and all data have been removed." });
+      router.push('/');
+    } catch (error: any) {
+      console.error("Error deleting account:", error);
+      let description = "An unexpected error occurred. Please try again.";
+      if (error.code === 'auth/requires-recent-login') {
+        description = "This is a sensitive operation. Please sign out and sign back in before deleting your account.";
+      }
+      toast({ variant: "destructive", title: "Deletion Failed", description });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -92,7 +147,6 @@ export default function ProfilePage() {
         </main>
     );
   }
-
 
   return (
       <main className="flex-grow container mx-auto p-4 sm:p-6 md:p-8">
@@ -153,6 +207,45 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card className="shadow-lg border-destructive/50">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive"><AlertTriangle />Danger Zone</CardTitle>
+                <CardDescription>Manage permanent actions for your account.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex justify-between items-center p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                    <div>
+                        <p className="font-semibold">Delete Account</p>
+                        <p className="text-sm text-muted-foreground">Permanently delete your account and all of your data. This action cannot be undone.</p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={isDeleting}>
+                            {isDeleting ? <Spinner className="mr-2" /> : <Trash2 className="mr-2"/>}
+                            Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your
+                            account and remove all your data from our servers.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive hover:bg-destructive/90">
+                            Yes, delete my account
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            </CardContent>
+          </Card>
+
         </div>
       </main>
   );
