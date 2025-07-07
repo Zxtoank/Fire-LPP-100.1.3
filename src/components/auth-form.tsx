@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -43,9 +42,9 @@ export function AuthForm() {
     setIsSubmitted(false);
     try {
       const actionCodeSettings = {
-        // URL you want to redirect back to. The domain must be
+        // Use the current URL to redirect back to. The domain must be
         // authorized in the Firebase console.
-        url: `${window.location.origin}/login`,
+        url: window.location.href,
         handleCodeInApp: true,
       };
 
@@ -81,7 +80,7 @@ export function AuthForm() {
   
   if (isSubmitted) {
     return (
-        <div className="text-center p-4 bg-primary/10 rounded-md border border-primary/20">
+        <div className="text-center p-4 bg-primary/10 rounded-md border-primary/20">
             <h3 className="font-semibold text-primary">Email Sent!</h3>
             <p className="text-sm text-muted-foreground mt-1">Please check your inbox and click the link to sign in.</p>
         </div>
