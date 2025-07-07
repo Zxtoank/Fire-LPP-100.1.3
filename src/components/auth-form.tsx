@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,10 +10,10 @@ import { auth } from "@/lib/firebase";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  GoogleAuthProvider,
-  signInWithRedirect,
-  signInWithPopup,
   updateProfile,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  type ConfirmationResult,
 } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,31 +28,44 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 const signUpSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters."}),
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
 });
 
 const logInSchema = z.object({
-    email: z.string().email({ message: "Invalid email address." }),
-    password: z.string().min(1, { message: "Password is required." }),
+  email: z.string().email({ message: "Invalid email address." }),
+  password: z.string().min(1, { message: "Password is required." }),
 });
-
 
 export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const isMobile = useIsMobile();
+
+  // State for phone authentication
+  const [isPhoneLoading, setIsPhoneLoading] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otp, setOtp] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const form = useForm({
     resolver: zodResolver(isSignUp ? signUpSchema : logInSchema),
-    defaultValues: isSignUp ? { name: "", email: "", password: ""} : { email: "", password: "" },
+    defaultValues: isSignUp ? { name: "", email: "", password: "" } : { email: "", password: "" },
   });
+  
+  // Setup invisible reCAPTCHA verifier
+  useEffect(() => {
+    if (!auth) return;
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+      });
+    }
+  }, []);
 
   const onSubmit = async (data: any) => {
     setIsLoading(true);
@@ -71,47 +84,57 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
       setIsLoading(false);
     }
   };
-
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
-    const provider = new GoogleAuthProvider();
+  
+  const handleSendOtp = async () => {
+    if (!auth) return;
+    setIsPhoneLoading(true);
     try {
-      if (isMobile) {
-        // Use redirect for mobile devices for better compatibility inside WebViews
-        await signInWithRedirect(auth, provider);
-        // The page will redirect, so no further code here will execute.
-        // The result is handled by getRedirectResult in AuthContext.
-      } else {
-        // Use popup for desktop for a better user experience
-        await signInWithPopup(auth, provider);
-        router.push("/");
-        toast({ title: "Success!", description: "You are now logged in." });
-        setIsGoogleLoading(false);
+      if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+        toast({ variant: "destructive", title: "Invalid Phone Number", description: "Please use E.164 format (e.g., +14155552671)." });
+        setIsPhoneLoading(false);
+        return;
       }
+      const appVerifier = (window as any).recaptchaVerifier;
+      const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      setConfirmationResult(confirmation);
+      setIsOtpSent(true);
+      toast({ title: "Verification Code Sent", description: "Please check your phone for the 6-digit code." });
     } catch (error: any) {
-      let description = error.message;
-      switch (error.code) {
-        case 'auth/operation-not-allowed':
-          description = "Google Sign-In is not enabled for this app. Please go to your Firebase Console > Authentication > Sign-in method, and enable the Google provider.";
-          break;
-        case 'auth/unauthorized-domain':
-          description = "This app's domain is not authorized for Google Sign-In. Please add it to the authorized domains list in both your Firebase and Google Cloud consoles.";
-          break;
-        case 'auth/popup-blocked-by-browser':
-           description = "The sign-in pop-up was blocked by your browser. Please allow pop-ups for this site and try again.";
-           break;
-        case 'auth/popup-closed-by-user':
-           description = "The sign-in window was closed before completing. Please try again.";
-           break;
-         case 'auth/account-exists-with-different-credential':
-           description = 'An account already exists with the same email. Please sign in using the original method.';
-           break;
-        default:
-           description = "An unexpected error occurred during Google Sign-In. Please check your configuration.";
-           break;
+      let description = "An unknown error occurred.";
+      if (error.code === 'auth/invalid-phone-number') {
+        description = "The phone number is not valid. Please ensure it's in E.164 format (e.g., +14155552671).";
+      } else if (error.code === 'auth/too-many-requests') {
+        description = "You've requested an OTP too many times. Please try again later.";
+      } else {
+        console.error("Phone Sign-In Error:", error);
+        description = "Failed to send OTP. Please check the number and reCAPTCHA setup.";
       }
-      toast({ variant: "destructive", title: "Google Sign-In Error", description });
-      setIsGoogleLoading(false);
+      toast({ variant: "destructive", title: "Error", description });
+    } finally {
+      setIsPhoneLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!confirmationResult || otp.length !== 6) {
+      toast({ variant: "destructive", title: "Invalid OTP", description: "Please enter the 6-digit code." });
+      return;
+    }
+    setIsPhoneLoading(true);
+    try {
+      await confirmationResult.confirm(otp);
+      router.push("/");
+      toast({ title: "Success!", description: "You are now logged in." });
+    } catch (error: any) {
+      let description = "Failed to verify OTP.";
+      if (error.code === 'auth/invalid-verification-code') {
+        description = "The code you entered is incorrect. Please try again.";
+      } else if (error.code === 'auth/code-expired') {
+        description = "The verification code has expired. Please request a new one.";
+      }
+      toast({ variant: "destructive", title: "Verification Failed", description });
+    } finally {
+      setIsPhoneLoading(false);
     }
   };
 
@@ -119,50 +142,50 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
     <div className="space-y-4">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {isSignUp && (
-                <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Your Name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
+          {isSignUp && (
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your Name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="your@email.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-            <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                        <Input type="email" placeholder="your@email.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-            />
-          <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="••••••••" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="w-full" disabled={isLoading || isPhoneLoading}>
             {isLoading && <Spinner className="mr-2 h-4 w-4" />}
-            {isSignUp ? "Sign Up" : "Log In"}
+            {isSignUp ? "Sign Up" : "Log In"} with Email
           </Button>
         </form>
       </Form>
@@ -171,22 +194,56 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
           <span className="w-full border-t" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+          <span className="bg-card px-2 text-muted-foreground">Or</span>
         </div>
       </div>
-       <div className="space-y-2">
-        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isGoogleLoading}>
-          {isGoogleLoading ? (
-              <Spinner className="mr-2 h-4 w-4" />
-          ) : (
-              <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.3 1.84-4.32 1.84-5.24 0-9.48-4.24-9.48-9.48s4.24-9.48 9.48-9.48c2.84 0 4.96 1.12 6.56 2.64l-2.32 2.32c-.8-.76-1.84-1.32-3.24-1.32-3.16 0-5.72 2.56-5.72 5.72s2.56 5.72 5.72 5.72c2.2 0 3.32-1.04 3.48-2.32H12.48z"></path></svg>
-          )}
-          Google
-        </Button>
-        <p className="text-xs text-center text-muted-foreground px-4">
-          Requires one-time setup in your Firebase project's Authentication settings.
+      <div className="space-y-2">
+        {!isOtpSent ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+14155552671"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={isPhoneLoading}
+              />
+            </div>
+            <Button variant="outline" className="w-full" onClick={handleSendOtp} disabled={isLoading || isPhoneLoading}>
+              {isPhoneLoading && <Spinner className="mr-2 h-4 w-4" />}
+              Send Verification Code
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="otp">Verification Code</Label>
+              <Input
+                id="otp"
+                type="text"
+                placeholder="123456"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+                disabled={isPhoneLoading}
+              />
+            </div>
+            <Button className="w-full" onClick={handleVerifyOtp} disabled={isLoading || isPhoneLoading}>
+              {isPhoneLoading && <Spinner className="mr-2 h-4 w-4" />}
+              Verify & {isSignUp ? "Sign Up" : "Log In"}
+            </Button>
+            <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={() => {setIsOtpSent(false); setOtp("");}}>
+                Use a different phone number
+            </Button>
+          </div>
+        )}
+         <p className="text-xs text-center text-muted-foreground px-4 pt-1">
+          Phone sign-in must be enabled in your Firebase project.
         </p>
       </div>
+      <div id="recaptcha-container"></div>
     </div>
   );
 }
