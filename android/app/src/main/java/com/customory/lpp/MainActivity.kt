@@ -1,19 +1,43 @@
 package com.customory.lpp
 
-import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.addCallback
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
 
-    @SuppressLint("SetJavaScriptEnabled")
+    // Activity result launcher for the file chooser
+    private val fileChooserLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        var results: Array<Uri>? = null
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            // Check if multiple files were selected
+            if (data?.clipData != null) {
+                results = Array(data.clipData!!.itemCount) { i ->
+                    data.clipData!!.getItemAt(i).uri
+                }
+            } else if (data?.data != null) {
+                // Single file selected
+                results = arrayOf(data.data!!)
+            }
+        }
+        filePathCallback?.onReceiveValue(results)
+        filePathCallback = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -21,60 +45,70 @@ class MainActivity : ComponentActivity() {
         webView = findViewById(R.id.webview)
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
-        webView.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
+        webView.settings.allowFileAccess = true // Allow file access for uploads
 
+        // Handle navigation and external links
         webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                if (url != null) {
-                    val uri = Uri.parse(url)
-                    // Specifically check for Amazon links to ensure they open externally
-                    if (uri.host?.contains("amazon.com") == true) {
-                        val intent = Intent(Intent.ACTION_VIEW, uri).apply {
-                            // This category ensures the intent is handled by a browser
-                            addCategory(Intent.CATEGORY_BROWSABLE)
-                            // This flag opens the browser in a new task, separate from our app
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        }
-                        try {
-                           startActivity(intent)
-                        } catch (e: android.content.ActivityNotFoundException) {
-                            // Handle case where no web browser is installed
-                            Toast.makeText(this@MainActivity, "No web browser found to open the link.",  Toast.LENGTH_LONG).show()
-                        }
-                        return true // We have handled the URL loading
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                val url = request?.url.toString()
+                if (url.contains("amazon.com")) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        return true // Indicates we've handled this URL
+                    } catch (e: Exception) {
+                        // Handle case where a browser isn't available
+                        return false
                     }
                 }
-                // For all other URLs, return false to let the WebView handle it.
-                return false
+                return false // Let the WebView handle all other URLs
+            }
+        }
+
+        // Handle file uploads
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView,
+                filePathCallback: ValueCallback<Array<Uri>>,
+                fileChooserParams: FileChooserParams
+            ): Boolean {
+                this@MainActivity.filePathCallback = filePathCallback
+                val intent = fileChooserParams.createIntent()
+                try {
+                    fileChooserLauncher.launch(intent)
+                } catch (e: Exception) {
+                    this@MainActivity.filePathCallback = null
+                    return false
+                }
+                return true
             }
         }
         
-        // This Javascript bridge allows the web app to call native file-saving code.
-        webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
-
-        // Handle back button presses to navigate web history first
-        onBackPressedDispatcher.addCallback(this) {
-            if (webView.canGoBack()) {
-                webView.goBack()
-            } else {
-                // If we can't go back in webview, let the dispatcher handle it (which finishes the activity)
-                if (isEnabled) {
+        // Handle back button presses
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) {
+                    webView.goBack()
+                } else {
+                    // If there's no web history, allow the system to handle the back press
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                 }
             }
-        }
+        })
 
-        // Load the main app URL
+        // Check if the URL is set. If not, show an error message inside the WebView.
         val appUrl = getString(R.string.app_url)
         if (appUrl.contains("REPLACE_WITH_YOUR_LIVE_APP_URL")) {
-            val htmlData = """
-                <html><body style='font-family: sans-serif; padding: 2rem;'>
-                <h1>Configuration Needed</h1>
-                <p>Please replace the placeholder URL in <code>android/app/src/main/res/values/strings.xml</code> with your web app's live URL.</p>
+            val errorHtml = """
+                <html><body style='font-family: sans-serif; text-align: center; padding: 40px; color: #333;'>
+                <h2>Configuration Required</h2>
+                <p>The application is not yet configured. Please update your website URL in:</p>
+                <p style='font-family: monospace; background-color: #f0f0f0; padding: 10px; border-radius: 5px; display: inline-block;'>app/src/main/res/values/strings.xml</p>
                 </body></html>
-            """
-            webView.loadData(htmlData, "text/html", "UTF-8")
+            """.trimIndent()
+            webView.loadData(errorHtml, "text/html", "UTF-8")
         } else {
             webView.loadUrl(appUrl)
         }
