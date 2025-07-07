@@ -1,116 +1,182 @@
 package com.customory.lpp
 
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
+import android.util.Base64
+import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.ComponentActivity
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
+
     private lateinit var webView: WebView
-    private var filePathCallback: ValueCallback<Array<Uri>>? = null
-
-    // Activity result launcher for the file chooser
-    private val fileChooserLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        var results: Array<Uri>? = null
-        if (result.resultCode == Activity.RESULT_OK) {
-            val data: Intent? = result.data
-            // Check if multiple files were selected
-            if (data?.clipData != null) {
-                results = Array(data.clipData!!.itemCount) { i ->
-                    data.clipData!!.getItemAt(i).uri
-                }
-            } else if (data?.data != null) {
-                // Single file selected
-                results = arrayOf(data.data!!)
-            }
-        }
-        filePathCallback?.onReceiveValue(results)
-        filePathCallback = null
-    }
+    private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
+    private val FILE_CHOOSER_RESULT_CODE = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         webView = findViewById(R.id.webview)
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
-        webView.settings.allowFileAccess = true // Allow file access for uploads
+        val webUrl = getString(R.string.app_url)
 
-        // Handle navigation and external links
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val url = request?.url.toString()
-                if (url.contains("amazon.com")) {
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        startActivity(intent)
-                        return true // Indicates we've handled this URL
-                    } catch (e: Exception) {
-                        // Handle case where a browser isn't available
-                        return false
-                    }
-                }
-                return false // Let the WebView handle all other URLs
-            }
+        if (webUrl.contains("REPLACE_WITH_YOUR_LIVE_APP_URL")) {
+            Toast.makeText(this, "ERROR: Please set your website URL in strings.xml", Toast.LENGTH_LONG).show()
+            return
         }
 
-        // Handle file uploads
-        webView.webChromeClient = object : WebChromeClient() {
-            override fun onShowFileChooser(
-                webView: WebView,
-                filePathCallback: ValueCallback<Array<Uri>>,
-                fileChooserParams: FileChooserParams
-            ): Boolean {
-                this@MainActivity.filePathCallback = filePathCallback
-                val intent = fileChooserParams.createIntent()
-                try {
-                    fileChooserLauncher.launch(intent)
-                } catch (e: Exception) {
-                    this@MainActivity.filePathCallback = null
-                    return false
-                }
-                return true
-            }
-        }
-        
-        // Handle back button presses
+        setupWebView()
+        webView.loadUrl(webUrl)
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (webView.canGoBack()) {
                     webView.goBack()
                 } else {
-                    // If there's no web history, allow the system to handle the back press
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
+                    finish()
                 }
             }
         })
+    }
 
-        // Check if the URL is set. If not, show an error message inside the WebView.
-        val appUrl = getString(R.string.app_url)
-        if (appUrl.contains("REPLACE_WITH_YOUR_LIVE_APP_URL")) {
-            val errorHtml = """
-                <html><body style='font-family: sans-serif; text-align: center; padding: 40px; color: #333;'>
-                <h2>Configuration Required</h2>
-                <p>The application is not yet configured. Please update your website URL in:</p>
-                <p style='font-family: monospace; background-color: #f0f0f0; padding: 10px; border-radius: 5px; display: inline-block;'>app/src/main/res/values/strings.xml</p>
-                </body></html>
-            """.trimIndent()
-            webView.loadData(errorHtml, "text/html", "UTF-8")
+    @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
+    private fun setupWebView() {
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.settings.allowFileAccess = true
+        webView.settings.allowContentAccess = true
+        webView.settings.databaseEnabled = true
+        webView.settings.setSupportMultipleWindows(false)
+        webView.settings.javaScriptCanOpenWindowsAutomatically = false
+        webView.settings.setHardwareAccelerationEnabled(true)
+        
+        webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
+
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                val uri = Uri.parse(url)
+                if (uri.host != null && (uri.host!!.endsWith("amazon.com") || uri.host!!.endsWith("amzn.to"))) {
+                     try {
+                        val intent = Intent(Intent.ACTION_VIEW, uri)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        return true
+                    } catch (e: ActivityNotFoundException) {
+                        return false
+                    }
+                }
+                return false
+            }
+        }
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?
+            ): Boolean {
+                fileUploadCallback?.onReceiveValue(null)
+                fileUploadCallback = filePathCallback
+
+                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE)
+                    type = "image/*"
+                }
+
+                try {
+                    startActivityForResult(intent, FILE_CHOOSER_RESULT_CODE)
+                } catch (e: ActivityNotFoundException) {
+                    fileUploadCallback = null
+                    Toast.makeText(this@MainActivity, "Cannot open file chooser", Toast.LENGTH_LONG).show()
+                    return false
+                }
+                return true
+            }
+        }
+    }
+    
+    @Deprecated("This method has been deprecated in favor of using the Activity Result API")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == FILE_CHOOSER_RESULT_CODE) {
+            if (fileUploadCallback == null) {
+                super.onActivityResult(requestCode, resultCode, data)
+                return
+            }
+
+            val results: Array<Uri>? = if (resultCode == Activity.RESULT_OK) {
+                data?.dataString?.let { arrayOf(Uri.parse(it)) }
+            } else {
+                null
+            }
+
+            fileUploadCallback?.onReceiveValue(results)
+            fileUploadCallback = null
         } else {
-            webView.loadUrl(appUrl)
+            super.onActivityResult(requestCode, resultCode, data)
+        }
+    }
+
+    private class WebAppInterface(private val context: Context) {
+        @JavascriptInterface
+        fun saveFile(base64Data: String, fileName: String, mimeType: String) {
+            try {
+                val fileData = Base64.decode(base64Data, Base64.DEFAULT)
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val resolver = context.contentResolver
+                    val contentValues = ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                    }
+                    val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                    uri?.let {
+                        resolver.openOutputStream(it).use { outputStream ->
+                            outputStream?.write(fileData)
+                        }
+                        showToast("File saved to Downloads folder.")
+                    } ?: throw IOException("Failed to create new MediaStore record.")
+                } else {
+                    @Suppress("DEPRECATION")
+                    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    if (!downloadsDir.exists()) {
+                        downloadsDir.mkdirs()
+                    }
+                    val file = File(downloadsDir, fileName)
+                    FileOutputStream(file).use {
+                        it.write(fileData)
+                    }
+                    showToast("File saved to Downloads folder.")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                showToast("Error saving file: ${e.message}")
+            }
+        }
+
+        private fun showToast(message: String) {
+            (context as? Activity)?.runOnUiThread {
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            }
         }
     }
 }
