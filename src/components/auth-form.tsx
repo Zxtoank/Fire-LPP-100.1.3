@@ -43,14 +43,14 @@ export function AuthForm() {
     setIsSubmitted(false);
     try {
       const actionCodeSettings = {
-        // URL you want to redirect back to. The domain (www.example.com) must be
+        // URL you want to redirect back to. The domain must be
         // authorized in the Firebase console.
         url: `${window.location.origin}/login`,
         handleCodeInApp: true,
       };
 
       await sendSignInLinkToEmail(auth, data.email, actionCodeSettings);
-      // The link was successfully sent. Inform the user.
+      
       // Save the email locally so you don't need to ask the user for it again
       // if they open the link on the same device.
       window.localStorage.setItem('emailForSignIn', data.email);
@@ -63,7 +63,17 @@ export function AuthForm() {
       form.reset();
 
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      if (error.code === 'auth/unauthorized-domain') {
+        console.error("Firebase Auth Error: The domain is not allowlisted.", error);
+        toast({
+          variant: "destructive",
+          title: "Domain Not Allowlisted",
+          description: "This app's domain is not authorized. Please check two things: 1) The domain is in your Firebase project's 'Authorized domains' list. 2) The 'authDomain' in your .env file matches the project you're editing.",
+          duration: 9000,
+        });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: error.message });
+      }
     } finally {
       setIsLoading(false);
     }
