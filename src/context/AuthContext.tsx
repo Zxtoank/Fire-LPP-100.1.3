@@ -3,7 +3,7 @@
 
 import { createContext, useState, useEffect, ReactNode, useContext } from "react";
 import { onAuthStateChanged, User, getRedirectResult } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { Spinner } from "@/components/spinner";
 import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { useToast } from "@/hooks/use-toast";
@@ -21,16 +21,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // This function will be unsubscribed on component unmount.
+    // This effect should only run if Firebase is configured.
+    if (!isFirebaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
+    let isHandlingRedirect = false;
     let unsubscribe = () => {};
 
     const checkAuthStatus = async () => {
+      // Prevent this from running multiple times if the effect re-runs.
+      if (isHandlingRedirect) return;
+      isHandlingRedirect = true;
+
       try {
-        // First, explicitly await any pending redirect result. This is crucial.
-        // This will be null if no redirect just happened.
         const result = await getRedirectResult(auth);
         if (result) {
-          // A user just signed in via redirect.
           toast({ title: "Welcome!", description: `Signed in as ${result.user.displayName || result.user.email}` });
         }
       } catch (error: any) {
@@ -48,19 +55,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         toast({ variant: "destructive", title: "Sign-In Failed", description });
       } finally {
-        // After awaiting the redirect result (or if there was none),
-        // we set up the definitive listener for any auth state changes.
-        // This will fire once immediately with the current user state.
+        // This listener will fire once immediately with the current user state
+        // and then again on any future auth changes.
         unsubscribe = onAuthStateChanged(auth, (currentUser) => {
           setUser(currentUser);
-          setLoading(false); // Now we can safely stop loading.
+          setLoading(false);
         });
+        isHandlingRedirect = false;
       }
     };
     
     checkAuthStatus();
 
-    // The cleanup function will run when the component unmounts.
     return () => unsubscribe();
   }, [toast]);
 
@@ -78,20 +84,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   const initialOptions = {
-    clientId: PAYPAL_CLIENT_ID || "",
+    clientId: isPaypalConfigured ? PAYPAL_CLIENT_ID : "sb", // Use a placeholder if not configured
     currency: "USD",
     intent: "capture",
   };
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
-      {isPaypalConfigured ? (
-        <PayPalScriptProvider options={initialOptions}>
-          {children}
-        </PayPalScriptProvider>
-      ) : (
-        children
-      )}
+       {isPaypalConfigured ? (
+         <PayPalScriptProvider options={initialOptions}>
+            {children}
+         </PayPalScriptProvider>
+       ) : (
+         children
+       )}
     </AuthContext.Provider>
   );
 };
