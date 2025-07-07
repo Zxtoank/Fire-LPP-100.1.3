@@ -1,14 +1,23 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Spinner } from '@/components/spinner';
 import { format } from 'date-fns';
-import { Package, Home, CheckCircle, Truck, Circle } from 'lucide-react';
+import { Package, Home, CheckCircle, Truck, Circle, Edit } from 'lucide-react';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface Order {
   id: string;
@@ -25,6 +34,119 @@ interface Order {
     postal_code: string;
     country: string;
   };
+  trackingNumber?: string;
+  carrier?: string;
+}
+
+const updateOrderSchema = z.object({
+  status: z.enum(["processing", "shipped", "delivered"]),
+  carrier: z.string().optional(),
+  trackingNumber: z.string().optional(),
+}).refine(data => {
+    if (data.status === 'shipped') {
+        return !!data.carrier && !!data.trackingNumber;
+    }
+    return true;
+}, {
+    message: "Carrier and tracking number are required when status is 'shipped'.",
+    path: ["trackingNumber"],
+});
+
+type UpdateOrderValues = z.infer<typeof updateOrderSchema>;
+
+function UpdateOrderForm({ order, customerId, onOrderUpdate }: { order: Order, customerId: string, onOrderUpdate: (data: Partial<Order>) => void }) {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const form = useForm<UpdateOrderValues>({
+        resolver: zodResolver(updateOrderSchema),
+        defaultValues: {
+            status: order.status || 'processing',
+            carrier: order.carrier || '',
+            trackingNumber: order.trackingNumber || '',
+        },
+    });
+
+    const onSubmit = async (data: UpdateOrderValues) => {
+        setIsSubmitting(true);
+        try {
+            const orderRef = doc(db, 'users', customerId, 'orders', order.id);
+            await updateDoc(orderRef, {
+                status: data.status,
+                carrier: data.carrier,
+                trackingNumber: data.trackingNumber,
+            });
+            onOrderUpdate(data);
+            toast({ title: "Success", description: "Order has been updated." });
+        } catch (error) {
+            console.error("Error updating order:", error);
+            toast({ variant: "destructive", title: "Error", description: "Failed to update the order." });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <Card className="shadow-md mt-8 border-primary/20">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Edit />Update Order</CardTitle>
+                <CardDescription>Update the status and add tracking information for this order.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <FormField
+                            control={form.control}
+                            name="status"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Order Status</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a status" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="processing">Processing</SelectItem>
+                                            <SelectItem value="shipped">Shipped</SelectItem>
+                                            <SelectItem value="delivered">Delivered</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="carrier"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Carrier</FormLabel>
+                                    <FormControl><Input placeholder="e.g., USPS, FedEx" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="trackingNumber"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Tracking Number</FormLabel>
+                                    <FormControl><Input placeholder="e.g., 9400111202555821528111" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? <Spinner className="mr-2" /> : null}
+                            Update Order
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
 }
 
 const statusSteps = [
@@ -56,8 +178,6 @@ export default function OrderDetailsPage() {
     if (user && orderId) {
       const fetchOrder = async () => {
         setIsLoading(true);
-        // Admin can view any order using a customerId from query params.
-        // Regular users can only view their own orders.
         const targetUid = isAdmin && customerId ? customerId : user.uid;
 
         if (!targetUid) {
@@ -84,6 +204,11 @@ export default function OrderDetailsPage() {
       fetchOrder();
     }
   }, [user, orderId, isAdmin, customerId]);
+  
+  const handleOrderUpdate = (data: Partial<Order>) => {
+      setOrder(prevOrder => prevOrder ? { ...prevOrder, ...data } : null);
+  };
+
 
   if (isLoading || loading) {
     return (
@@ -169,8 +294,30 @@ export default function OrderDetailsPage() {
                      </div>
                 </div>
             </div>
+
+            {order.status !== 'processing' && order.carrier && order.trackingNumber && (
+                 <div className="pt-6 border-t">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Truck />Tracking Information</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p><strong>Carrier:</strong> {order.carrier}</p>
+                            <p><strong>Tracking Number:</strong> {order.trackingNumber}</p>
+                        </CardContent>
+                        <CardFooter>
+                             <a href={`https://www.google.com/search?q=${encodeURIComponent(order.carrier + ' ' + order.trackingNumber)}`} target="_blank" rel="noopener noreferrer">
+                                <Button>Track Package</Button>
+                            </a>
+                        </CardFooter>
+                    </Card>
+                 </div>
+            )}
+
           </CardContent>
         </Card>
+
+        {isAdmin && customerId && <UpdateOrderForm order={order} customerId={customerId} onOrderUpdate={handleOrderUpdate} />}
       </main>
   );
 }
