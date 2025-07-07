@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -10,7 +11,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
   updateProfile,
 } from "firebase/auth";
 import { Button } from "@/components/ui/button";
@@ -72,9 +73,9 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      router.push("/");
-      toast({ title: "Success!", description: "You are now logged in with Google." });
+      // Use signInWithRedirect for better mobile compatibility.
+      // The page will navigate away, and the result is handled by onAuthStateChanged when the user returns.
+      await signInWithRedirect(auth, provider);
     } catch (error: any) {
       let description = error.message;
       switch (error.code) {
@@ -95,7 +96,6 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
            break;
       }
       toast({ variant: "destructive", title: "Google Sign-In Error", description });
-    } finally {
       setIsGoogleLoading(false);
     }
   };
