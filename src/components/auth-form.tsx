@@ -79,10 +79,10 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
       let description = error.message;
       switch (error.code) {
         case 'auth/operation-not-allowed':
-          description = "Google Sign-In is not enabled for this app. Please enable it in your Firebase console's Authentication section.";
+          description = "Google Sign-In is not enabled for this app. Please go to your Firebase Console > Authentication > Sign-in method, and enable the Google provider.";
           break;
         case 'auth/unauthorized-domain':
-          description = "This website's domain is not authorized for Google Sign-In. Please add it to the authorized domains in your Firebase and Google Cloud consoles.";
+          description = "This app's domain is not authorized for Google Sign-In. Please add it to the authorized domains list in both your Firebase and Google Cloud consoles.";
           break;
         case 'auth/popup-blocked-by-browser':
            description = "The sign-in pop-up was blocked by your browser. Please allow pop-ups for this site and try again.";
