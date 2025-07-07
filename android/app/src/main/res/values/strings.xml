@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Locket Photo Print</string>
+    <!-- TODO: Replace this with the final, deployed URL of your web application. -->
+    <string name="app_url">https://REPLACE_WITH_YOUR_LIVE_APP_URL</string>
 </resources>
