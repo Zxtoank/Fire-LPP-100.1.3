@@ -12,6 +12,7 @@ import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithRedirect,
+  signInWithPopup,
   updateProfile,
 } from "firebase/auth";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const signUpSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters."}),
@@ -45,6 +47,7 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const isMobile = useIsMobile();
 
   const form = useForm({
     resolver: zodResolver(isSignUp ? signUpSchema : logInSchema),
@@ -73,9 +76,18 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      // Use signInWithRedirect for better mobile compatibility.
-      // The page will navigate away, and the result is handled by onAuthStateChanged when the user returns.
-      await signInWithRedirect(auth, provider);
+      if (isMobile) {
+        // Use redirect for mobile devices for better compatibility inside WebViews
+        await signInWithRedirect(auth, provider);
+        // The page will redirect, so no further code here will execute.
+        // The result is handled by getRedirectResult in AuthContext.
+      } else {
+        // Use popup for desktop for a better user experience
+        await signInWithPopup(auth, provider);
+        router.push("/");
+        toast({ title: "Success!", description: "You are now logged in." });
+        setIsGoogleLoading(false);
+      }
     } catch (error: any) {
       let description = error.message;
       switch (error.code) {
@@ -90,6 +102,9 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
            break;
         case 'auth/popup-closed-by-user':
            description = "The sign-in window was closed before completing. Please try again.";
+           break;
+         case 'auth/account-exists-with-different-credential':
+           description = 'An account already exists with the same email. Please sign in using the original method.';
            break;
         default:
            description = "An unexpected error occurred during Google Sign-In. Please check your configuration.";
