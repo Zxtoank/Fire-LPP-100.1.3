@@ -14,6 +14,8 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
   type ConfirmationResult,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,10 +42,17 @@ const logInSchema = z.object({
   password: z.string().min(1, { message: "Password is required." }),
 });
 
+const GoogleIcon = () => (
+  <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+    <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 111.8 512 0 398.2 0 256S111.8 0 244 0c69.8 0 130.8 28.1 176.2 72.9l-63.1 61.9C333.5 102.4 291.1 80 244 80 149.6 80 71.5 153.3 71.5 256s78.1 176 172.5 176c98.2 0 150-70.2 155.1-106.2H244v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path>
+  </svg>
+);
+
 export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // State for phone authentication
   const [isPhoneLoading, setIsPhoneLoading] = useState(false);
@@ -82,6 +91,21 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
       toast({ variant: "destructive", title: "Authentication Error", description: error.message });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    setIsGoogleLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      router.push("/");
+      toast({ title: "Success!", description: "You are now logged in." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Authentication Error", description: error.message });
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
   
@@ -183,7 +207,7 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isLoading || isPhoneLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading || isPhoneLoading || isGoogleLoading}>
             {isLoading && <Spinner className="mr-2 h-4 w-4" />}
             {isSignUp ? "Sign Up" : "Log In"} with Email
           </Button>
@@ -197,6 +221,12 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
           <span className="bg-card px-2 text-muted-foreground">Or</span>
         </div>
       </div>
+
+       <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || isPhoneLoading || isGoogleLoading}>
+        {isGoogleLoading ? <Spinner className="mr-2 h-4 w-4" /> : <GoogleIcon />}
+        Sign in with Google
+      </Button>
+
       <div className="space-y-2">
         {!isOtpSent ? (
           <div className="space-y-4">
@@ -208,10 +238,10 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
                 placeholder="+14155552671"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                disabled={isPhoneLoading}
+                disabled={isPhoneLoading || isLoading || isGoogleLoading}
               />
             </div>
-            <Button variant="outline" className="w-full" onClick={handleSendOtp} disabled={isLoading || isPhoneLoading}>
+            <Button variant="outline" className="w-full" onClick={handleSendOtp} disabled={isLoading || isPhoneLoading || isGoogleLoading}>
               {isPhoneLoading && <Spinner className="mr-2 h-4 w-4" />}
               Send Verification Code
             </Button>
@@ -227,10 +257,10 @@ export function AuthForm({ isSignUp }: { isSignUp: boolean }) {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 maxLength={6}
-                disabled={isPhoneLoading}
+                disabled={isPhoneLoading || isLoading || isGoogleLoading}
               />
             </div>
-            <Button className="w-full" onClick={handleVerifyOtp} disabled={isLoading || isPhoneLoading}>
+            <Button className="w-full" onClick={handleVerifyOtp} disabled={isLoading || isPhoneLoading || isGoogleLoading}>
               {isPhoneLoading && <Spinner className="mr-2 h-4 w-4" />}
               Verify & {isSignUp ? "Sign Up" : "Log In"}
             </Button>
