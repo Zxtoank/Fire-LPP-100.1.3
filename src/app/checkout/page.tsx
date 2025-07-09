@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -211,7 +212,7 @@ export default function CheckoutPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="border rounded-md p-2 bg-muted">
-                            {printPreviewUrl && <Image src={printPreviewUrl} alt="Print Preview" width={400} height={600} className="w-full h-auto rounded-md" />}
+                            {printPreviewUrl && <Image src={printPreviewUrl} alt="Print Preview" width={408} height={600} className="w-full h-auto rounded-md" />}
                         </div>
                          <div className="flex justify-between items-center text-lg">
                             <p>4"x6" Physical Print</p>

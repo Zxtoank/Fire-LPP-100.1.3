@@ -9,10 +9,11 @@ import type { CropShape } from './image-editor';
 import { useToast } from '@/hooks/use-toast';
 
 const PRINT_DPI_PREVIEW = 600;
-const PRINT_WIDTH_IN = 4;
-const PRINT_HEIGHT_IN = 6;
-const PRINT_WIDTH_PX = PRINT_WIDTH_IN * PRINT_DPI_PREVIEW;
-const PRINT_HEIGHT_PX = PRINT_HEIGHT_IN * PRINT_DPI_PREVIEW;
+const PRINT_WIDTH_IN_WITH_BLEED = 4.25;
+const PRINT_HEIGHT_IN_WITH_BLEED = 6.25;
+const BLEED_IN = 0.125;
+const PRINT_WIDTH_PX = PRINT_WIDTH_IN_WITH_BLEED * PRINT_DPI_PREVIEW;
+const PRINT_HEIGHT_PX = PRINT_HEIGHT_IN_WITH_BLEED * PRINT_DPI_PREVIEW;
 
 const drawHeart = (ctx: CanvasRenderingContext2D, cx: number, y: number, width: number, height: number) => {
     ctx.save();
@@ -104,7 +105,7 @@ function PrintPreviewComponent({ image, cropShape, getSourceRect }: PrintPreview
         } else {
             finalW = printW;
             finalH = printW / sourceAR;
-            finalY = (printH - finalH) / 2;
+            finalY = (pH - finalH) / 2;
         }
         
         if (sw > 0 && sh > 0) {
@@ -130,22 +131,23 @@ function PrintPreviewComponent({ image, cropShape, getSourceRect }: PrintPreview
             cropAspectRatio = 0.7;
         }
         
+        const bleedPx = BLEED_IN * PRINT_DPI_PREVIEW;
         const margin = 20;
-        let currentX = margin;
-        let currentY = margin;
+        let currentX = margin + bleedPx;
+        let currentY = margin + bleedPx;
         let maxRowHeight = 0;
 
         for (let heightMm = 8; heightMm <= 35; heightMm++) {
         const heightPx = (heightMm / 25.4) * PRINT_DPI_PREVIEW;
         const widthPx = heightPx * cropAspectRatio;
 
-        if (currentX + widthPx + margin > printCanvas.width) {
+        if (currentX + widthPx + margin > printCanvas.width - bleedPx) {
             currentY += maxRowHeight + margin;
-            currentX = margin;
+            currentX = margin + bleedPx;
             maxRowHeight = 0;
         }
 
-        if (currentY + heightPx > printCanvas.height) {
+        if (currentY + heightPx > printCanvas.height - bleedPx) {
             break; 
         }
 
@@ -162,7 +164,7 @@ function PrintPreviewComponent({ image, cropShape, getSourceRect }: PrintPreview
             const previewCtx = previewCanvas.getContext('2d');
             if (!previewCtx) throw new Error("Could not create preview canvas context");
 
-            const previewWidth = 400;
+            const previewWidth = 408;
             const previewHeight = 600;
             previewCanvas.width = previewWidth;
             previewCanvas.height = previewHeight;

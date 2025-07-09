@@ -16,9 +16,6 @@ import { Spinner } from '@/components/spinner';
 import { Download, FileText, Package, Star, Lightbulb, Crown, ShoppingCart, User } from 'lucide-react';
 import type { CropShape } from './image-editor';
 
-const PRINT_WIDTH_IN = 4;
-const PRINT_HEIGHT_IN = 6;
-
 const drawHeart = (ctx: CanvasRenderingContext2D, cx: number, y: number, width: number, height: number) => {
     ctx.save();
     ctx.beginPath();
@@ -82,8 +79,12 @@ function ExportOptionsComponent({ image, cropShape, getSourceRect }: ExportOptio
         const tempCtx = tempCanvas.getContext('2d');
         if (!tempCtx) return reject(new Error("Could not create canvas context"));
 
-        tempCanvas.width = PRINT_WIDTH_IN * dpi;
-        tempCanvas.height = PRINT_HEIGHT_IN * dpi;
+        const PRINT_WIDTH_IN_WITH_BLEED = 4.25;
+        const PRINT_HEIGHT_IN_WITH_BLEED = 6.25;
+        const BLEED_IN = 0.125;
+
+        tempCanvas.width = PRINT_WIDTH_IN_WITH_BLEED * dpi;
+        tempCanvas.height = PRINT_HEIGHT_IN_WITH_BLEED * dpi;
         tempCtx.fillStyle = 'white';
         tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
         
@@ -133,20 +134,21 @@ function ExportOptionsComponent({ image, cropShape, getSourceRect }: ExportOptio
             cropAspectRatio = 0.7;
         }
         
+        const bleedPx = BLEED_IN * dpi;
         const margin = (20 / 600) * dpi;
-        let currentX = margin;
-        let currentY = margin;
+        let currentX = margin + bleedPx;
+        let currentY = margin + bleedPx;
         let maxRowHeight = 0;
 
         for (let heightMm = 8; heightMm <= 35; heightMm++) {
             const heightPx = (heightMm / 25.4) * dpi;
             const widthPx = heightPx * cropAspectRatio;
-            if (currentX + widthPx + margin > tempCanvas.width) {
+            if (currentX + widthPx + margin > tempCanvas.width - bleedPx) {
                 currentY += maxRowHeight + margin;
-                currentX = margin;
+                currentX = margin + bleedPx;
                 maxRowHeight = 0;
             }
-            if (currentY + heightPx > tempCanvas.height) break;
+            if (currentY + heightPx > tempCanvas.height - bleedPx) break;
             drawSingleImageForDownload(tempCtx, currentX, currentY, widthPx, heightPx);
             currentX += widthPx + margin;
             if (heightPx > maxRowHeight) maxRowHeight = heightPx;
@@ -180,9 +182,9 @@ function ExportOptionsComponent({ image, cropShape, getSourceRect }: ExportOptio
 
             if (format === 'pdf') {
                 const { default: jsPDF } = await import('jspdf');
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4.25, 6.25] });
                 const imgData = canvas.toDataURL('image/png');
-                pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
+                pdf.addImage(imgData, 'PNG', 0, 0, 4.25, 6.25);
                 base64Data = pdf.output('datauristring').split(',')[1];
                 mimeType = 'application/pdf';
             } else {
@@ -198,9 +200,9 @@ function ExportOptionsComponent({ image, cropShape, getSourceRect }: ExportOptio
 
             if (format === 'pdf') {
                 const { default: jsPDF } = await import('jspdf');
-                const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: [4.25, 6.25] });
                 const imgData = canvas.toDataURL('image/png');
-                pdf.addImage(imgData, 'PNG', 0, 0, 4, 6);
+                pdf.addImage(imgData, 'PNG', 0, 0, 4.25, 6.25);
                 const pdfBlob = pdf.output('blob');
                 link.href = URL.createObjectURL(pdfBlob);
             } else {
