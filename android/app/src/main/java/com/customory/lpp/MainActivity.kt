@@ -6,7 +6,6 @@ import android.app.Activity
 import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -15,22 +14,47 @@ import android.provider.MediaStore
 import android.util.Base64
 import android.webkit.*
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var webView: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
-    private val FILE_CHOOSER_RESULT_CODE = 1
-    private var pendingFileData: PendingFile? = null
+    private var pendingFile: PendingFile? = null
 
     private data class PendingFile(val base64Data: String, val fileName: String, val mimeType: String)
 
-    companion object {
-        private const val STORAGE_PERMISSION_CODE = 101
+    private val fileChooserLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val results = result.data?.dataString?.let { arrayOf(Uri.parse(it)) }
+            filePathCallback?.onReceiveValue(results)
+        } else {
+            filePathCallback?.onReceiveValue(null)
+        }
+        filePathCallback = null
+    }
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            pendingFile?.let {
+                saveFile(it.base64Data, it.fileName, it.mimeType)
+            }
+        } else {
+            Toast.makeText(this, "Storage permission is required to download files.", Toast.LENGTH_LONG).show()
+        }
+        pendingFile = null
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -38,165 +62,90 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val webView: WebView = findViewById(R.id.webview)
-        with(webView.settings) {
+        webView = findViewById(R.id.webview)
+
+        webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
             allowFileAccess = true
-            allowContentAccess = true
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            javaScriptCanOpenWindowsAutomatically = true
         }
 
-        webView.addJavascriptInterface(WebAppInterface(this), "AndroidBridge")
-
-        webView.webViewClient = object : WebViewClient() {
-            override fun onReceivedError(
-                view: WebView?,
-                request: WebResourceRequest?,
-                error: WebResourceError?
-            ) {
-                if (request != null && request.isForMainFrame) {
-                    val appUrl = getString(R.string.app_url)
-                    if (appUrl.contains("REPLACE_WITH_YOUR_LIVE_APP_URL")) {
-                         val htmlData = """
-                            <html>
-                                <body style='font-family: sans-serif; text-align: center; padding: 2rem; color: #333;'>
-                                    <h1>Configuration Needed</h1>
-                                    <p>The application's URL is not set.</p>
-                                    <p style='padding: 0 1rem;'>Please replace <code>REPLACE_WITH_YOUR_LIVE_APP_URL</code> in <code>android/app/src/main/res/values/strings.xml</code> with your website's live URL.</p>
-                                </body>
-                            </html>
-                        """.trimIndent()
-                        view?.loadData(htmlData, "text/html", "UTF-8")
-                    } else {
-                        super.onReceivedError(view, request, error)
-                    }
-                }
-            }
-        }
-
+        webView.webViewClient = WebViewClient()
+        webView.addJavascriptInterface(WebAppInterface(), "AndroidBridge")
         webView.webChromeClient = object : WebChromeClient() {
             override fun onShowFileChooser(
-                webView: WebView?,
-                filePathCallback: ValueCallback<Array<Uri>>?,
-                fileChooserParams: FileChooserParams?
+                mWebView: WebView,
+                mFilePathCallback: ValueCallback<Array<Uri>>,
+                fileChooserParams: FileChooserParams
             ): Boolean {
-                this@MainActivity.filePathCallback = filePathCallback
-                val intent = fileChooserParams?.createIntent()
+                filePathCallback?.onReceiveValue(null)
+                filePathCallback = mFilePathCallback
+                val intent = fileChooserParams.createIntent()
                 try {
-                    startActivityForResult(intent, FILE_CHOOSER_RESULT_CODE)
+                    fileChooserLauncher.launch(intent)
                 } catch (e: Exception) {
-                    this@MainActivity.filePathCallback = null
+                    Toast.makeText(applicationContext, "Cannot open file chooser", Toast.LENGTH_LONG).show()
                     return false
                 }
                 return true
             }
         }
+
         val appUrl = getString(R.string.app_url)
         webView.loadUrl(appUrl)
-    }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == FILE_CHOOSER_RESULT_CODE) {
-            val results = if (resultCode == Activity.RESULT_OK) {
-                WebChromeClient.FileChooserParams.parseResult(resultCode, data)
-            } else {
-                null
-            }
-            filePathCallback?.onReceiveValue(results)
-            filePathCallback = null
-        }
-    }
-
-    override fun onBackPressed() {
-        val webView: WebView = findViewById(R.id.webview)
-        if (webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            super.onBackPressed()
-        }
-    }
-
-    private fun checkAndRequestStoragePermission(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            return true // No permission needed for MediaStore
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            return true
-        }
-        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), STORAGE_PERMISSION_CODE)
-        return false
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == STORAGE_PERMISSION_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                pendingFileData?.let {
-                    saveFileToDevice(it.base64Data, it.fileName, it.mimeType)
-                    pendingFileData = null
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) {
+                    webView.goBack()
+                } else {
+                    finish()
                 }
-            } else {
-                Toast.makeText(this, "Storage permission denied. Cannot save file.", Toast.LENGTH_LONG).show()
-                pendingFileData = null
             }
-        }
+        })
     }
 
-    private fun saveFileToDevice(base64Data: String, fileName: String, mimeType: String) {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val resolver = contentResolver
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                }
-                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                uri?.let {
-                    resolver.openOutputStream(it).use { outputStream ->
-                        val decodedBytes = Base64.decode(base64Data, Base64.DEFAULT)
-                        outputStream?.write(decodedBytes)
-                    }
-                }
-            } else {
-                @Suppress("DEPRECATION")
-                val downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                if (!downloadDir.exists()) {
-                    downloadDir.mkdirs()
-                }
-                val file = File(downloadDir, fileName)
-                FileOutputStream(file).use { outputStream ->
-                    val decodedBytes = Base64.decode(base64Data, Base64.DEFAULT)
-                    outputStream.write(decodedBytes)
-                }
-                MediaScannerConnection.scanFile(this, arrayOf(file.toString()), null, null)
-            }
-            runOnUiThread {
-                Toast.makeText(this, "Download complete: $fileName", Toast.LENGTH_LONG).show()
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            runOnUiThread {
-                Toast.makeText(this, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    inner class WebAppInterface(private val activity: Activity) {
+    inner class WebAppInterface {
         @JavascriptInterface
         fun saveFile(base64Data: String, fileName: String, mimeType: String) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-                if (checkAndRequestStoragePermission()) {
-                    saveFileToDevice(base64Data, fileName, mimeType)
-                } else {
-                    // Request is pending, store data to process after permission result
-                    pendingFileData = PendingFile(base64Data, fileName, mimeType)
-                }
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                pendingFile = PendingFile(base64Data, fileName, mimeType)
+                requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             } else {
-                 saveFileToDevice(base64Data, fileName, mimeType)
+                try {
+                    val decodedBytes = Base64.decode(base64Data, Base64.DEFAULT)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        val resolver = contentResolver
+                        val contentValues = ContentValues().apply {
+                            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                            put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                        }
+                        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                        uri?.let {
+                            resolver.openOutputStream(it).use { outputStream ->
+                                outputStream?.write(decodedBytes)
+                            }
+                            runOnUiThread { Toast.makeText(this@MainActivity, "File saved to Downloads", Toast.LENGTH_SHORT).show() }
+                        } ?: throw IOException("Failed to create new MediaStore record.")
+                    } else {
+                        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                        if (!downloadsDir.exists()) {
+                            downloadsDir.mkdirs()
+                        }
+                        val file = File(downloadsDir, fileName)
+                        FileOutputStream(file).use { out ->
+                            out.write(decodedBytes)
+                        }
+                        runOnUiThread { Toast.makeText(this@MainActivity, "File saved to Downloads", Toast.LENGTH_SHORT).show() }
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread { Toast.makeText(this@MainActivity, "Error saving file: ${e.message}", Toast.LENGTH_LONG).show() }
+                    e.printStackTrace()
+                }
             }
         }
     }
