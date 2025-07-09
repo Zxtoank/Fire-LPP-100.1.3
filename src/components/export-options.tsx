@@ -193,6 +193,7 @@ function ExportOptionsComponent({ image, cropShape, getSourceRect }: ExportOptio
             }
             
             androidBridge.saveFile(base64Data, fileName, mimeType);
+            toast({ title: "Download Sent to App", description: "Your download is being handled by the app." });
             
         } else {
             const link = document.createElement('a');
