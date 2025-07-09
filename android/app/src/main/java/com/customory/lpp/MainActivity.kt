@@ -1,86 +1,102 @@
 package com.customory.lpp
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.webkit.ValueCallback
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
-    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
 
-    // Modern Activity Result API for handling the file chooser result
     private val fileChooserLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        var results: Array<Uri>? = null
-        // Handle the result from the file chooser
-        if (result.resultCode == RESULT_OK) {
-            result.data?.dataString?.let {
-                results = arrayOf(Uri.parse(it))
-            }
-        }
-        filePathCallback?.onReceiveValue(results)
-        filePathCallback = null
+        val uris = WebChromeClient.FileChooserParams.parseResult(result.resultCode, result.data)
+        fileUploadCallback?.onReceiveValue(uris)
+        fileUploadCallback = null
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         webView = findViewById(R.id.webview)
-        // Enable necessary WebView settings
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
-        webView.settings.allowFileAccess = true
+        setupWebView()
 
-        // Set a WebChromeClient to handle file uploads
+        val appUrl = getString(R.string.app_url)
+        if (appUrl == "https://REPLACE_WITH_YOUR_LIVE_APP_URL" || appUrl.isBlank()) {
+            val errorHtml = """
+                <html><body style='font-family: sans-serif; text-align: center; padding: 40px;'>
+                <h1>Configuration Needed</h1>
+                <p>Please set your web app's live URL in the <b>strings.xml</b> file.</p>
+                </body></html>
+            """.trimIndent()
+            webView.loadData(errorHtml, "text/html", "UTF-8")
+        } else {
+            webView.loadUrl(appUrl)
+        }
+    }
+
+    private fun setupWebView() {
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            allowFileAccess = true
+            javaScriptCanOpenWindowsAutomatically = true
+        }
+
+        webView.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                val url = request?.url.toString()
+                if (url.contains("amazon.com")) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        startActivity(intent)
+                        return true
+                    } catch (e: Exception) {
+                        return true
+                    }
+                }
+                return false
+            }
+        }
+
         webView.webChromeClient = object : WebChromeClient() {
             override fun onShowFileChooser(
                 webView: WebView?,
                 filePathCallback: ValueCallback<Array<Uri>>?,
                 fileChooserParams: FileChooserParams?
             ): Boolean {
-                this@MainActivity.filePathCallback = filePathCallback
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                    addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "image/*" // Only allow image selection
+                fileUploadCallback?.onReceiveValue(null)
+                fileUploadCallback = filePathCallback
+
+                val intent = fileChooserParams?.createIntent() ?: createFileChooserIntent()
+
+                try {
+                    fileChooserLauncher.launch(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "Failed to open file chooser.", Toast.LENGTH_LONG).show()
+                    fileUploadCallback = null
+                    return false
                 }
-                fileChooserLauncher.launch(intent)
                 return true
             }
         }
-
-        // Set a WebViewClient to handle URL loading and external links
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                val uri = Uri.parse(url)
-                val host = uri.host
-                // Check if the link is for an Amazon domain
-                if (host != null && (host.endsWith("amazon.com") || host.contains(".amazon."))) {
-                    // This is an external link, open it in the default browser
-                    val intent = Intent(Intent.ACTION_VIEW, uri)
-                    startActivity(intent)
-                    return true // We've handled this URL, so the WebView shouldn't load it
-                }
-                // For all other links, let the WebView handle them
-                return false
-            }
-        }
-
-        // Load the main URL of the web app
-        webView.loadUrl(getString(R.string.app_url))
     }
 
-    // Handle the back button press to navigate WebView history
+    private fun createFileChooserIntent(): Intent {
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
+        intent.type = "image/*"
+        return intent
+    }
+
+
     override fun onBackPressed() {
         if (webView.canGoBack()) {
             webView.goBack()
