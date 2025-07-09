@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
@@ -105,7 +104,7 @@ function PrintPreviewComponent({ image, cropShape, getSourceRect }: PrintPreview
         } else {
             finalW = printW;
             finalH = printW / sourceAR;
-            finalY = (pH - finalH) / 2;
+            finalY = (printH - finalH) / 2;
         }
         
         if (sw > 0 && sh > 0) {
